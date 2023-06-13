@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_vehicle"
+            android:icon="@drawable/twotone_selected_car_24"
+            android:title="@string/vehicle" />
+        <item
+            android:id="@+id/nav_newCar"
+            android:icon="@drawable/baseline_new_car_24"
+            android:title="@string/new_car" />
+        <item
+            android:id="@+id/nav_vehicles"
+            android:icon="@drawable/twotone_commute_24"
+            android:title="@string/vehicles" />
+        <item
+            android:id="@+id/nav_refueling"
+            android:icon="@drawable/twotone_local_gas_station_24"
+            android:title="@string/new_repostaje" />
+        <item
+            android:id="@+id/nav_repostajes"
+            android:icon="@drawable/twotone_local_gas_station_24"
+            android:title="@string/historico" />
+        <item
+            android:id="@+id/nav_statistics"
+            android:icon="@drawable/twotone_data_exploration_24"
+            android:title="@string/statistics" />
+    </group>
+    <item android:title="@string/respaldo">
+        <menu>
+            <item
+                android:id="@+id/backup"
+                android:icon="@drawable/twotone_backup_24"
+                android:title="@string/backup" />
+            <item
+                android:id="@+id/restore"
+                android:icon="@drawable/twotone_restore_page_24"
+                android:title="@string/restore" />
+        </menu>
+    </item>
+</menu>
