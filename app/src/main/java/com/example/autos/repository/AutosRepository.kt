@@ -2,6 +2,7 @@ package com.example.autos.repository
 
 import android.app.Application
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.LiveData
 import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.CompoundPrice
@@ -37,8 +38,12 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
         return database.autosDao.getAutos()
     }
 
-    fun getAuto(autoId: Int): LiveData<DbAuto> {
+    suspend fun getAuto(autoId: Int): DbAuto {
         return database.autosDao.getAuto(autoId)
+    }
+
+    fun countAutos(): LiveData<Int> {
+        return database.autosDao.countAutos()
     }
 
     fun updateAuto(auto: DbAuto){
@@ -57,7 +62,7 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
         database.autosDao.insertRefueling(refuel)
     }
 
-    fun getLastRefueling(carId: Int): LiveData<DbRefueling?> {
+    suspend fun getLastRefueling(carId: Int): DbRefueling? {
         return database.autosDao.getLastRefueling(carId)
     }
 
@@ -69,19 +74,19 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
         return database.autosDao.getAllRepostajes()
     }
 
-    suspend fun getTotalPetrol(carId: Int): Float {
+    suspend fun getTotalPetrol(carId: Int): Float? {
         return database.autosDao.getTotalPetrol(carId)
     }
 
-    suspend fun getTotalCost(carId: Int): Float {
+    suspend fun getTotalCost(carId: Int): Float? {
         return database.autosDao.getTotalCost(carId)
     }
 
-    fun getMaxPrice(carId: Int): LiveData<CompoundPrice> {
+    fun getMaxPrice(carId: Int): LiveData<CompoundPrice?> {
         return database.autosDao.getMaxPrice(carId)
     }
 
-    fun getMinPrice(carId: Int): LiveData<CompoundPrice> {
+    fun getMinPrice(carId: Int): LiveData<CompoundPrice?> {
         return database.autosDao.getMinPrice(carId)
     }
 }

@@ -12,7 +12,7 @@
     <string name="matricula">Matrícula:</string>
     <string name="fecha_matriculacion">Fecha matriculación:</string>
     <string name="kms_iniciales">Kms iniciales:</string>
-    <string name="kilometraje">Kilometraje:</string>
+    <string name="kilometraje">Kilometros:</string>
     <string name="parcial">Parcial:</string>
     <string name="fecha_compra">Fecha de compra:</string>
     <string name="vehicle">Vehículo</string>
@@ -21,16 +21,19 @@
     <string name="new_car">Nuevo vehículo</string>
     <string name="add_vehicle">Añadir vehículo</string>
     <string name="date_hint">26/09/2013</string>
-    <string name="matricula_hint">0000CCC</string>
-    <string name="mes_anno_hint">11/2012</string>
+    <string name="matricula_hint">0000MMM</string>
+    <string name="mes_anno_hint">09/11/2012</string>
     <string name="modelo">Modelo</string>
     <string name="marca">Marca</string>
     <string name="repostaje">Repostaje</string>
     <string name="new_repostaje">Nuevo repostaje</string>
     <string name="add_cost">Añadir gasto</string>
+    <string name="mantenimiento">Mantenimiento</string>
     <string name="fecha">Fecha: </string>
+    <string name="set">Establecer</string>
+    <string name="date_adjust">Ajustar fecha</string>
     <string name="kilometros">Kilómetros: </string>
-    <string name="kms">kms</string>
+    <string name="kms">Kms: </string>
     <string name="total_kms">Total kms: </string>
     <string name="litros">Litros: </string>
     <string name="euros_litro">€/l: </string>
@@ -39,7 +42,7 @@
     <string name="full">Lleno</string>
     <string name="error_faltan_datos">¡Faltan datos!</string>
     <string name="kms_recorridos">Kms recorridos:</string>
-    <string name="consumo_medio_total">Consumo medio total:</string>
+    <string name="consumo_medio">Consumo medio:</string>
     <string name="total_litros">Total litros:</string>
     <string name="statistics">Estadísticas</string>
     <string name="gasto_total">Gasto total:</string>
@@ -52,10 +55,14 @@
     <string name="backup">Respaldo de datos</string>
     <string name="restore">Recuperar datos</string>
     <string name="respaldo">Respaldo</string>
+    <string name="error_restore">El archivo no es válido: </string>
     <string name="restore_dialog_msg">¿Restaurar datos de vehículos desde archivo?</string>
     <string name="saved_cars">%d vehículos guardados</string>
     <string name="restored_cars">%d vehículos recuperados</string>
     <string name="saving_error">Hubo un error y no se pudo guardar los datos: </string>
+    <string name="retrieving_error">No se pudo preparar los datos.</string>
     <string name="open">Abierto</string>
     <string name="close">Cerrado</string>
+    <string name="mas">Más</string>
+    <string name="menos">Menos</string>
 </resources>

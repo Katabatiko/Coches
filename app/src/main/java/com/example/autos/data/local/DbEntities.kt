@@ -1,5 +1,6 @@
 package com.example.autos.data.local
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import androidx.room.Entity
@@ -105,6 +106,24 @@ fun DbRefueling.asDomainModel(): DomainRefueling {
         euros = this.euros,
         lleno = this.lleno
     )
+}
+
+fun LiveData<DbRefueling?>.asLiveDataDomainModel(): LiveData<DomainRefueling?> {
+    return map {
+        if (it != null) {
+            DomainRefueling(
+                refuelId = it.refuelId,
+                cocheId = it.cocheId,
+                fecha = it.fecha,
+                kms = it.kms,
+                litros = it.litros,
+                eurosLitro = it.eurosLitro,
+                euros = it.euros,
+                lleno = it.lleno
+            )
+        }
+        else null
+    }
 }
 
 fun LiveData<List<DbRefueling>>.asListDomainModel(): LiveData<List<DomainRefueling>> {

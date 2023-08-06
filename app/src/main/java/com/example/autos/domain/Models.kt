@@ -39,6 +39,5 @@ data class DomainRefueling(
     val eurosLitro: Float,
     val euros: Float,
     val lleno: Boolean,
-    var recorrido: Int = 0,
-    var expand: Boolean = false
+    var recorrido: Int = 0
 ): Parcelable

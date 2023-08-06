@@ -20,7 +20,10 @@ interface AutosDao {
     suspend fun getAutos() : List<DbAuto>
 
     @Query("select * from DbAuto where id = :autoId")
-    fun getAuto(autoId: Int): LiveData<DbAuto>
+    suspend fun getAuto(autoId: Int): DbAuto
+
+    @Query("select count(*) from DbAuto")
+    fun countAutos(): LiveData<Int>
 
     @Query("select initKms from DbAuto where id= :autoId")
     fun getAutoInitialKms(autoId: Int): LiveData<Int>
@@ -36,7 +39,7 @@ interface AutosDao {
     suspend fun insertRefueling(refuel: DbRefueling)
 
     @Query("select * from DbRefueling where cocheId= :carId order by kms desc limit 1")
-    fun getLastRefueling(carId: Int): LiveData<DbRefueling?>
+    suspend fun getLastRefueling(carId: Int): DbRefueling?
 
     @Query("select * from DbRefueling where cocheId= :carId order by kms desc")
     fun getRepostajes(carId: Int): LiveData<List<DbRefueling>>
@@ -45,14 +48,14 @@ interface AutosDao {
     suspend fun getAllRepostajes(): List<DbRefueling>
 
     @Query("select sum(euros) from DbRefueling where cocheId= :carId")
-    suspend fun getTotalCost(carId: Int): Float
+    suspend fun getTotalCost(carId: Int): Float?
 
     @Query("select sum(litros) from DbRefueling where cocheId= :carId")
-    suspend fun getTotalPetrol(carId: Int): Float
+    suspend fun getTotalPetrol(carId: Int): Float?
 
     @Query("select max(eurosLitro) as price, fecha from DbRefueling where cocheId= :carId")
-    fun getMaxPrice(carId: Int): LiveData<CompoundPrice>
+    fun getMaxPrice(carId: Int): LiveData<CompoundPrice?>
 
     @Query("select min(eurosLitro) as price, fecha from DbRefueling where cocheId= :carId")
-    fun getMinPrice(carId: Int): LiveData<CompoundPrice>
+    fun getMinPrice(carId: Int): LiveData<CompoundPrice?>
 }

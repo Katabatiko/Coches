@@ -21,7 +21,7 @@ abstract class AutosDatabase: RoomDatabase() {
                         AutosDatabase::class.java,
                         "autos"
                     )
-                        .build()
+                    .build()
                 }
             }
             return INSTANCE

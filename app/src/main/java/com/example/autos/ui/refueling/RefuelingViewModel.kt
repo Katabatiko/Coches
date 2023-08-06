@@ -16,20 +16,32 @@ import com.example.autos.data.local.DbRefueling
 import com.example.autos.data.local.asListDomainModel
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.repository.AutosRepository
+import com.example.autos.util.flipDate
+import com.example.autos.util.redondeaDecimales
+import com.example.autos.util.standardizeDate
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 private const val TAG = "xxRvm"
+
 
 class RefuelingViewModel(
     private val repository: AutosRepository,
     application: Application
 ) : AndroidViewModel(application) {
 
-    var carId = repository.getActualAutoId()
+//    var carId = autoId
+    val refuelingDate = MutableLiveData("")
+    val actualKms = MutableLiveData("")
+    val precio = MutableLiveData("")
+    val coste = MutableLiveData("")
+    val litros = MutableLiveData("")
+    val lleno = MutableLiveData(false)
 
-    var lastRefueling: LiveData<DbRefueling?> = repository.getLastRefueling(carId)
+    var initKms = 0
 
-    var repostajes: LiveData<List<DomainRefueling>> = repository.getRepostajes(carId).asListDomainModel()
+    var repostajes: LiveData<List<DomainRefueling>> = repository.getRepostajes(repository.getActualAutoId()).asListDomainModel()
+
 
     private val _status = MutableLiveData<AutosStatus>()
     val status: LiveData<AutosStatus>
@@ -37,28 +49,78 @@ class RefuelingViewModel(
 
     init {
         _status.value = AutosStatus.LOADING
+        val calendar = Calendar.getInstance()
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH) +1
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+        refuelingDate.value = standardizeDate("$day/$month/$year")
     }
 
     fun resetStatus() {
         _status.value = AutosStatus.DONE
     }
 
-    fun reloadData(autoId: Int){
-        carId = autoId
-        lastRefueling = repository.getLastRefueling(carId)
-        repostajes = repository.getRepostajes(carId).asListDomainModel()
+    private fun resetData(){
+        actualKms.value = ""
+        precio.value = ""
+        litros.value = ""
+        coste.value = ""
+        lleno.value = false
     }
 
+    fun setRecorridos() {
+        val refuelings = repostajes.value
+        if (!refuelings.isNullOrEmpty()) {
+            refuelings.forEachIndexed { index, domainRefueling ->
+                if (domainRefueling.recorrido == 0) {
+                    val lastKms = if (index < (refuelings.size - 1)) {
+                                        // al venir ordenados por kms decreciente
+                                        // todos menos el primero (menor kms)
+                                        refuelings[index + 1].kms
+                                    } else {
+                                        // refenencia del primero son los kms iniciales
+                                        initKms
+                                    }
+                    domainRefueling.recorrido = (domainRefueling.kms - lastKms)
+                }
+            }
+        } else  Log.d(TAG,"repostajes vacio o nulo")
+    }
 
-    fun saveRefueling(refueling: DbRefueling) {
-//            Log.d(TAG,"refueling lastKms: ${refueling.kms}")
+    fun calcularLitros(){
+        if (!precio.value.isNullOrBlank() && precio.value != "0")
+            litros.postValue(
+                redondeaDecimales(
+                    (coste.value!!
+                        .replace(",",".")
+                        .toFloat()
+                            /
+                    precio.value!!
+                        .replace(",",".")
+                        .toFloat()
+                    ), 2).toString()
+            )
+    }
+
+    fun saveRefueling(autoId: Int) {
+        val refueling = DbRefueling(
+            cocheId = autoId,
+            euros = coste.value!!.replace(",",".").toFloat(),
+            litros = litros.value!!.replace(",",".").toFloat(),
+            eurosLitro = precio.value!!.replace(",",".").toFloat(),
+            kms = actualKms.value!!.toInt(),
+            lleno = lleno.value!!,
+            fecha = flipDate(refuelingDate.value!!)
+        )
+        Log.d(TAG,"refueling last: $refueling")
+        updateAutoKms(autoId, refueling.kms)
         viewModelScope.launch {
             repository.insertRefueling(refueling)
         }
-        updateAutoKms(refueling.kms)
+        resetData()
     }
 
-    fun updateAutoKms(autoKms: Int){
+    fun updateAutoKms(carId: Int, autoKms: Int){
         viewModelScope.launch {
             repository.updateAutoKms(carId, autoKms)
         }

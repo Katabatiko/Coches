@@ -1,27 +1,38 @@
 package com.example.autos.ui.vehiculos
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.asListDomainAutoModel
 import com.example.autos.domain.DomainCoche
 import com.example.autos.repository.AutosRepository
 
+private const val TAG = "xxVvm"
 class VehiculosViewModel(private val repository: AutosRepository, application: Application) : AndroidViewModel(application) {
 
-//    private val _vehicles = MutableLiveData<List<DbAuto>>()
     val vehicles: LiveData<List<DomainCoche>> = repository.getAllAutos().asListDomainAutoModel()
 
-}
 
-class VehiculosViewModelFactory(
-    private val repository: AutosRepository,
-    private val application: Application
-    ): ViewModelProvider.Factory {
-    @Suppress("unchecked_cast")
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return VehiculosViewModel(repository, application) as T
+    fun setAutoId(autoId: Int) {
+        repository.setActualAutoId(autoId)
     }
+
+
+    companion object{
+        val Factory: ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+                val repository = AutosRepository(AutosDatabase.getDatabase(application.applicationContext), application)
+                VehiculosViewModel(repository, application)
+            }
+        }
+    }
+
 }

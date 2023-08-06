@@ -1,6 +1,7 @@
 package com.example.autos.util
 
 import android.widget.EditText
+import com.example.autos.NumberType
 import com.example.autos.domain.DomainCoche
 import com.example.autos.domain.DomainRefueling
 import com.google.android.material.textfield.TextInputLayout
@@ -13,7 +14,7 @@ fun localNumberFormat(number: Int): String{
     return NumberFormat.getInstance().format(number)
 }
 
-fun localFloataFormat(float: Float): String{
+fun localFloatFormat(float: Float): String{
     return NumberFormat.getInstance().format(float)
 }
 
@@ -32,30 +33,40 @@ fun flipDate(date: String): String{
 
 fun standardizeDate(date: String): String{
     val partes = date.split("/").toMutableList()
-    if (partes[0].length < 2)     partes[0] = "0${partes[0]}"
-    if (partes[1].length < 2)     partes[1] = "0${partes[1]}"
+    if (partes[0].length < 2)                       partes[0] = "0${partes[0]}"
+    if (partes.size > 2 && partes[1].length < 2)    partes[1] = "0${partes[1]}"
 //    Log.d(TAG,"fecha estandarizada: ${partes.joinToString("/")}")
     return partes.joinToString("/")
 }
 
-fun validacion(campos: List<EditText>): Boolean {
+fun validacion(campos: List<String>): Boolean {
     var ok = true
     campos.forEach { campo ->
-        if (campo.text.toString().trim().isBlank()){
+        if (campo.isBlank()){
             ok = false
-            (campo.parent.parent as TextInputLayout).error = " "
-        } else {
-            (campo.parent.parent as TextInputLayout).error = ""
+            return ok
         }
     }
     return ok
 }
 
-
-class AutoListener(val clickListener: (auto: DomainCoche) -> Unit){
-    fun onClick(auto: DomainCoche) = clickListener(auto)
+fun textEmpty(textValue: String): Boolean{
+    return textValue.isBlank()
 }
 
-class RefuelListener(val clickListener: (refuel: DomainRefueling) -> Unit){
-    fun onClick(refuel: DomainRefueling) = clickListener(refuel)
+fun numeroValido(value: String, type: NumberType): Boolean{
+    when(type){
+        NumberType.INT -> {
+            val patern = Regex("[0-9]{1,7}")
+            return patern.matches(value)
+        }
+        NumberType.FLOAT2 -> {
+            val patern = Regex("""[0-9]{1,3}([.,][0-9]{1,2})?""")
+            return patern.matches(value)
+        }
+        NumberType.FLOAT3 -> {
+            val patern = Regex("""[0-9]?[.,][0-9]{1,3}""")
+            return patern.matches(value)
+        }
+    }
 }
