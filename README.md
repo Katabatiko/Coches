@@ -11,9 +11,9 @@
 Algunas características:
 
 *   Segumiento de consumo de combustible
-*   Registro de gastos de mantenimiento (en desarrollo)
+*   Registro de gastos de mantenimiento
 *   Estadísticas (en desarrollo)
-*   Uno o varios vehículos
+*   Varios vehículos
 
 
 
@@ -22,4 +22,5 @@ Algunas características:
 Tecnologias usadas en el proyecto:
 
 *   Kotlin
+*   MVVM
 *   Compose

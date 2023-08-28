@@ -14,8 +14,11 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.DbAuto
+import com.example.autos.data.local.DbGasto
+import com.example.autos.data.local.DbItem
 import com.example.autos.data.local.DbRefueling
-import com.example.autos.data.local.asDomainModel
+import com.example.autos.data.local.asLiveDataDomainAuto
+import com.example.autos.data.local.asRefuelingListDomainModel
 import com.example.autos.domain.DomainCoche
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.repository.AutosRepository
@@ -33,10 +36,15 @@ import org.json.JSONObject
 
 private const val TAG = "xxMavm"
 
+private const val AUTOS = "DbAuto"
+private const val REPOSTAJES = "DbRefueling"
+private const val GASTOS = "DbGasto"
+private const val ITEMS = "DbItem"
+
 class MainActivityViewModel(val app: Application, val repository: AutosRepository): ViewModel() {
 
 
-    var autoId = mutableStateOf(-1)
+//    var carId = mutableStateOf(autoId)
     var firstStart = mutableStateOf(false)
 
     var auto: MutableState<DomainCoche?> = mutableStateOf(null)
@@ -44,34 +52,36 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
 
     lateinit var cars: List<DbAuto>
     lateinit var refuelings: List<DbRefueling>
+    lateinit var gastos: List<DbGasto>
+    lateinit var items: List<DbItem>
 
     val datosRecibidos = MutableLiveData(false)
 
     var restoredVehicles = 0
 
     init {
-//        Log.d(TAG,"init autoId: ${autoId.value}")
-        getActualAutoId()
-        if (autoId.value != -1) {
+        Log.d(TAG,"init viewModel autoId: ${autoId}")
+//        getActualAutoId()
+        if (autoId != -1) {
             viewModelScope.launch {
-                auto.value = repository.getAuto(autoId.value).asDomainModel()
-                lastRefueling.value = repository.getLastRefueling(autoId.value)?.asDomainModel()
+                auto.value = repository.getAuto(autoId).asLiveDataDomainAuto()
+                lastRefueling.value = repository.getLastRefueling(autoId)?.asRefuelingListDomainModel()
             }
         } else {
             firstStart.value = true
         }
     }
 
-    fun getActualAutoId() {
-        autoId.value = repository.getActualAutoId()
-    }
+//    fun getActualAutoId() {
+//        carId.value = repository.getActualAutoId()
+//    }
 
     fun refreshData() {
 //        Log.d(TAG,"refresh data autoId: ${autoId.value}")
         viewModelScope.launch {
             // necesario copiar para que el estado note el cambio de un solo atributo (actualKms por refueling)
             // se pasan todos los atributos para el caso de que cambie el auto
-            val (id, marca, modelo, matricula, year, initKms, actualKms, buyDate) = repository.getAuto(autoId.value).asDomainModel()
+            val (id, marca, modelo, matricula, year, initKms, actualKms, buyDate) = repository.getAuto(autoId).asLiveDataDomainAuto()
             if (auto.value != null) {
                 auto.value = auto.value!!.copy(
                     id = id,
@@ -85,9 +95,9 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
                 )
             } else {
                 // para el caso de restauracion desde archivo
-                auto.value = repository.getAuto(autoId.value).asDomainModel()
+                auto.value = repository.getAuto(autoId).asLiveDataDomainAuto()
             }
-            lastRefueling.value = repository.getLastRefueling(autoId.value)?.asDomainModel()
+            lastRefueling.value = repository.getLastRefueling(autoId)?.asRefuelingListDomainModel()
         }
 
 
@@ -102,16 +112,36 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
     private suspend fun retrieveDataAsync() = coroutineScope {
         val deferredCars = async { cars = repository.getAutos() }
         val deferredRefuels = async { refuelings = repository.getAllRepostajes() }
+        val deferredGastos = async { gastos = repository.getAllGastos() }
+        val deferredItems = async { items = repository.getAllItems() }
         deferredCars.await()
 //        Log.d(TAG,"deferredCars: $deferredCars")
         deferredRefuels.await()
 //        Log.d(TAG,"deferredRefuels: $deferredRefuels")
+        deferredGastos.await()
+        deferredItems.await()
         cars.isNotEmpty() /*&& refuelings.isNotEmpty()*/
     }
 
 
-    fun editFile(uri: Uri, jsonString: String): Boolean{
+    fun editFile(uri: Uri): Boolean{
 //        Log.d(TAG,"editFile uri: $uri")
+
+//        var jsonString = """{"Autos":"""
+        var jsonString = """{"$AUTOS":"""
+        jsonString = jsonString.plus(dataToJson(cars as List<Any>))
+//        jsonString = jsonString.plus(""","Refueling":""")
+        jsonString = jsonString.plus(""","$REPOSTAJES":""")
+        jsonString = jsonString.plus(dataToJson(refuelings as List<Any>))
+//        jsonString = jsonString.plus(""","Gastos":""")
+        jsonString = jsonString.plus(""","$GASTOS":""")
+        jsonString = jsonString.plus(dataToJson(gastos as List<Any>))
+//        jsonString = jsonString.plus(""","Items":""")
+        jsonString = jsonString.plus(""","$ITEMS":""")
+        jsonString = jsonString.plus(dataToJson(items as List<Any>))
+        jsonString = jsonString.plus("}")
+
+
         val contentResolver = app.contentResolver
 
         try {
@@ -130,7 +160,7 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
         return true
     }
 
-    fun <Any> dataToJson(data: List<Any>): String {
+    private fun <Any> dataToJson(data: List<Any>): String {
         val gson = Gson()
 
         return gson.toJsonTree(data).toString()
@@ -152,49 +182,101 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
         try {
             val jsonObject = JSONObject(read)
 
-            val jsonAutos = jsonObject.getJSONArray("Autos")
+            val jsonAutos = jsonObject.getJSONArray(AUTOS)
             val numAutos = jsonAutos.length()
 //            Log.d(TAG, "numAutos: $numAutos")
-            val jsonRepos = jsonObject.getJSONArray("Refueling")
+            val jsonRepos = jsonObject.getJSONArray(REPOSTAJES)
             val numRepos = jsonRepos.length()
 //            Log.d(TAG, "numRepos: $numRepos")
+            val jsonGastos = jsonObject.getJSONArray(GASTOS)
+            val numGastos = jsonGastos.length()
+//            Log.d(TAG, "numGastos: $numGastos")
+            val jsonItems = jsonObject.getJSONArray(ITEMS)
+            val numItems = jsonItems.length()
+//            Log.d(TAG, "numItems: $numItems")
 
-            // si es el primer arranque no hay datos en la BD, por lo que se mantienen los Id de los autos
+            // si es el primer arranque no hay datos en la BD, por lo que se mantienen los Id de los elementos
             if (firstStart.value) {
                 viewModelScope.launch {
+                    var latestId = 1
+                    var latestFecha = ""
                     for (i in 0 until numAutos) {
                         val auto = gson.fromJson(jsonAutos.getString(i), DbAuto::class.java)
                         repository.insertAuto(auto)
+                        // se busca el ultimo auto dado registrado
+                        if (auto.buyDate > latestFecha) {
+                            latestId = auto.id
+                            latestFecha = auto.buyDate
+                        }
+//                        Log.d(TAG,"latest auto: $latestFecha")
                     }
-                    repository.setActualAutoId(1)
+                    repository.setActualAutoId(latestId)
 
                     for (i in 0 until numRepos) {
                         val repo = gson.fromJson(jsonRepos.getString(i), DbRefueling::class.java)
                         repository.insertRefueling(repo)
                     }
+
+                    for (i in 0 until numGastos) {
+                        val gasto = gson.fromJson(jsonGastos.getString(i), DbGasto::class.java)
+                        repository.insertGasto(gasto)
+                    }
+
+                    for (i in 0 until numItems) {
+                        val item = gson.fromJson(jsonItems.getString(i), DbItem::class.java)
+                        repository.insertItem(item)
+                    }
                 }
             } else {
-                // si ya hay datos en la BD, es necesario reasignar el Id de los autos (y sus repostajes) con nuevos Id
-                // lista de parejas con <oldAutoId, newAutoId>
-                var autosIdList: Map<Int, Int> = mapOf()
+                // si ya hay datos en la BD, es necesario reasignar el Id de los autos (y sus repostajes y gastos) con nuevos Id
+                var repos: List<DbRefueling> = listOf()
+                var gastos: List<DbGasto> = listOf()
+                var items: List<DbItem> = listOf()
+
+                for (i in 0 until numRepos) {
+                    val repo = gson.fromJson(jsonRepos.getString(i), DbRefueling::class.java)
+                    repos = repos.plus(repo)
+                }
+
+                for (i in 0 until numGastos) {
+                    val gasto = gson.fromJson(jsonGastos.getString(i), DbGasto::class.java)
+                    gastos = gastos.plus(gasto)
+                }
+
+                for (i in 0 until numItems) {
+                    val item = gson.fromJson(jsonItems.getString(i), DbItem::class.java)
+                    items = items.plus(item)
+                }
 
                 viewModelScope.launch {
                     for (i in 0 until numAutos) {
                         val auto = gson.fromJson(jsonAutos.getString(i), DbAuto::class.java)
+                        // insercion y registro de los Id viejos y nuevos
                         val oldId = auto.id
                         auto.id = 0
-                        // insercion y registro de los Id viejos y nuevos
-                        autosIdList =
-                            autosIdList.plus(Pair(oldId, repository.insertAuto(auto).toInt()))
+                        val newId = repository.insertAuto(auto).toInt()
+                        repos.forEach {
+                            it.refuelId = 0
+                            if (it.cocheId == oldId)    it.cocheId = newId
+                        }
+                        gastos.forEach {
+                            it.gastoId = 0
+                            if (it.autoId == oldId)     it.autoId = newId
+                        }
                     }
-//                    Log.d(TAG, "autosIdList: $autosIdList")
 
-                    for (i in 0 until numRepos) {
-                        val repo = gson.fromJson(jsonRepos.getString(i), DbRefueling::class.java)
-                        repo.refuelId = 0
-                        repo.cocheId = autosIdList[repo.cocheId]!!
-                        repository.insertRefueling(repo)
+                    repos.forEach { repository.insertRefueling(it) }
+
+                    gastos.forEach { gasto ->
+                        val oldId = gasto.gastoId
+                        gasto.gastoId = 0
+                        val newId = repository.insertGasto(gasto).toInt()
+                        items.forEach {
+                            it.itemId = 0
+                            if (it.gastoId == oldId)    it.gastoId = newId
+                        }
                     }
+                    items.forEach { repository.insertItem(it) }
                 }
             }
             restoredVehicles = numAutos

@@ -154,7 +154,7 @@ fun Kilometraje(
         modifier.padding(vertical = 6.dp)
     ) {
         Text(
-            text = stringResource(R.string.kilometraje),
+            text = stringResource(R.string.kilometros),
             Modifier.fillMaxWidth(1f),
             fontWeight = FontWeight.Bold
         )
@@ -262,7 +262,7 @@ fun HomeFabs(navController: NavController) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         FloatingActionButton(
-            onClick = {  },
+            onClick = { navController.navigate("newGasto") },
             contentColor = MaterialTheme.colorScheme.secondary,
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         ) {

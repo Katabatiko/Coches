@@ -8,43 +8,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
 import com.example.autos.NumberType
 import com.example.autos.R
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.ui.composables.DatePickerView
+import com.example.autos.ui.composables.DatoNumericoInput
 import com.example.autos.util.numeroValido
-import com.example.autos.util.textEmpty
 
 
 @Composable
@@ -93,200 +78,6 @@ fun RefuelingDate(
 }
 
 @Composable
-fun KilometrajeInput(
-    focusManager: FocusManager,
-    kms: String,
-    lastKms: Int?,
-    onDataChange: (String) -> Unit
-) {
-    val focusRequester = remember { FocusRequester() }
-
-    val error = rememberSaveable { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Text(
-            text = stringResource(id = R.string.kilometros),
-            modifier = Modifier
-                .fillMaxWidth(0.35f)
-                .align(Alignment.CenterVertically)
-        )
-        OutlinedTextField(
-            value = TextFieldValue(kms, TextRange(kms.length)),
-            onValueChange = {
-                onDataChange(it.text)
-                error.value = !numeroValido(it.text, NumberType.INT)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterVertically)
-                .focusRequester(focusRequester),
-            label = { Text(
-                lastKms?.toString() ?: "100000"
-            ) },
-            isError = error.value,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next,
-                keyboardType = KeyboardType.Number
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = {
-                    error.value = textEmpty(kms)
-                    focusManager.moveFocus(FocusDirection.Next)
-                }
-            )
-        )
-        LaunchedEffect(Unit) {
-            focusRequester.requestFocus()
-        }
-    }
-}
-
-@Composable
-fun PrecioInput(
-    focusManager: FocusManager,
-    eurosLitro: String,
-    lastPrecio: Float?,
-    onDataChange: (String) -> Unit
-) {
-    val error = remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Text(
-            text = stringResource(id = R.string.euros_litro),
-            modifier = Modifier
-                .fillMaxWidth(0.35f)
-                .align(Alignment.CenterVertically)
-        )
-        OutlinedTextField(
-            value = TextFieldValue(eurosLitro, TextRange(eurosLitro.length)),
-            onValueChange = {
-                onDataChange(it.text)
-                error.value = !numeroValido(it.text, NumberType.FLOAT3)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterVertically),
-            label = { Text(
-                lastPrecio?.toString() ?: "1.234"
-            ) },
-            isError = error.value,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next,
-                keyboardType = KeyboardType.Number
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = {
-                    error.value = textEmpty(eurosLitro)
-                    focusManager.moveFocus(FocusDirection.Next)
-                }
-            )
-        )
-    }
-
-}
-
-@Composable
-fun CostoInput(
-    focusManager: FocusManager,
-    costo: String,
-    lastCosto: Float?,
-    onDataChange: (String) -> Unit,
-    calcularLitros: () -> Unit
-) {
-    val error = remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-    ) {
-        Text(
-            text = stringResource(id = R.string.euros),
-            modifier = Modifier
-                .fillMaxWidth(0.35f)
-                .align(Alignment.CenterVertically)
-        )
-        OutlinedTextField(
-            value = TextFieldValue(costo, TextRange(costo.length)),
-            onValueChange = {
-                onDataChange(it.text)
-                error.value = !numeroValido(it.text, NumberType.FLOAT2)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterVertically),
-            label = { Text(
-                lastCosto?.toString() ?: "56.78"
-            ) },
-            isError = error.value,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next,
-                keyboardType = KeyboardType.Number
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = {
-                    error.value = textEmpty(costo)
-                    focusManager.moveFocus(FocusDirection.Next)
-                    calcularLitros()
-                }
-            )
-        )
-    }
-
-}
-
-@Composable
-fun LitrosInput(
-    focusManager: FocusManager,
-    modifier: Modifier,
-    litros: String,
-    lastLitros: Float?,
-    onDataChange: (String) -> Unit
-) {
-    val error = remember { mutableStateOf(false) }
-
-    Row(
-        modifier = modifier
-    ) {
-        Text(
-            text = stringResource(id = R.string.litros),
-            modifier = Modifier
-                .fillMaxWidth(0.35f)
-                .align(Alignment.CenterVertically)
-        )
-        OutlinedTextField(
-            value = TextFieldValue(litros, TextRange(litros.length)),
-            onValueChange = {
-                onDataChange(it.text)
-                error.value = !numeroValido(it.text, NumberType.FLOAT2)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.CenterVertically),
-            label = { Text(
-                lastLitros?.toString() ?: "45.54"
-            ) },
-            isError = error.value,
-            keyboardOptions = KeyboardOptions(
-                imeAction = ImeAction.Next,
-                keyboardType = KeyboardType.Number
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = {
-                    error.value = textEmpty(litros)
-                    focusManager.clearFocus()
-                }
-            )
-        )
-    }
-}
-
-@Composable
 fun Lleno(
     lleno: Boolean,
     onDataChange: (Boolean) -> Unit
@@ -313,24 +104,23 @@ fun Lleno(
 @Composable
 fun RefuelingScreen(
     viewModel: RefuelingViewModel,
-    autoId: Int,
     lastRefueling: DomainRefueling?,
-    navController: NavController,
     onNewRefueling: () -> Unit
 ){
-    val actualDate = viewModel.refuelingDate.observeAsState()
-    val kms = viewModel.actualKms.observeAsState()
-    val precio = viewModel.precio.observeAsState()
-    val costo = viewModel.coste.observeAsState()
-    val litros = viewModel.litros.observeAsState()
-    val lleno = viewModel.lleno.observeAsState()
+    val actualDate = viewModel.refuelingDate
+    val kms = viewModel.actualKms
+    val precio = viewModel.precio
+    val costo = viewModel.coste
+    val litros = viewModel.litros
+    val lleno = viewModel.lleno
 
 
     fun areAllInputs(): Boolean {
-        if (!numeroValido(kms.value ?: "", NumberType.INT)) return false
-        if (!numeroValido(precio.value ?: "", NumberType.FLOAT3)) return false
-        if (!numeroValido(costo.value ?: "", NumberType.FLOAT2)) return false
-        if (!numeroValido(litros.value ?: "", NumberType.FLOAT2)) return false
+        if (!numeroValido(kms.value, NumberType.INT)) return false
+//        if (!numeroValido(kms.value ?: "", NumberType.INT, lastRefueling?.kms ?: viewModel.initKms)) return false
+        if (!numeroValido(precio.value, NumberType.FLOAT3)) return false
+        if (!numeroValido(costo.value, NumberType.FLOAT2)) return false
+        if (!numeroValido(litros.value, NumberType.FLOAT2)) return false
         return true
     }
 
@@ -342,54 +132,65 @@ fun RefuelingScreen(
         val focusManager = LocalFocusManager.current
 
         RefuelingDate(
-            date = actualDate.value!!,
-            onDateChanged = { viewModel.refuelingDate.postValue(it) }
+            date = actualDate.value,
+            onDateChanged = { viewModel.refuelingDate.value = it }
         )
         Spacer(modifier = Modifier.height(8.dp))
-        KilometrajeInput(
+        DatoNumericoInput(
+            label = stringResource(id = R.string.kms),
+            numberType = NumberType.INT,
             focusManager = focusManager,
-            kms = kms.value ?: "",
-            lastKms = lastRefueling?.kms ?: viewModel.initKms,
+            focusRequest = true,
+            value = kms.value,
+            lastValue = (lastRefueling?.kms ?: viewModel.initKms).toString(),
             onDataChange = {
-                viewModel.actualKms.postValue(it)
+                viewModel.actualKms.value = it
             }
         )
         Spacer(modifier = Modifier.height(8.dp))
-        PrecioInput(
+        DatoNumericoInput(
+            label = stringResource(id = R.string.euros_litro),
+            numberType = NumberType.FLOAT3,
             focusManager = focusManager,
-            eurosLitro = precio.value ?: "",
-            lastPrecio = lastRefueling?.eurosLitro ?: 1.234f,
+            focusRequest = false,
+            value = precio.value,
+            lastValue = (lastRefueling?.eurosLitro ?: 1.234f).toString(),
             onDataChange = {
-                viewModel.precio.postValue(it) }
+                viewModel.precio.value = it
+            }
         )
         Spacer(modifier = Modifier.height(8.dp))
-        CostoInput(
+        DatoNumericoInput(
+            label = stringResource(id = R.string.euros),
+            numberType = NumberType.FLOAT2,
             focusManager = focusManager,
-            costo = costo.value ?: "",
-            lastCosto = lastRefueling?.euros ?: 45.67f,
+            value = costo.value,
+            lastValue = (lastRefueling?.euros ?: 45.67f).toString(),
+            auxFunc = {  viewModel.calcularLitros() },
             onDataChange = {
-                viewModel.coste.postValue(it) },
-            calcularLitros = { viewModel.calcularLitros() }
+                viewModel.coste.value = it
+            }
         )
         Spacer(modifier = Modifier.height(8.dp))
-        LitrosInput(
+        DatoNumericoInput(
+            label = stringResource(id = R.string.litros),
+            numberType = NumberType.FLOAT2,
             focusManager = focusManager,
-            Modifier.fillMaxWidth(),
-            litros = litros.value ?: "",
-            lastLitros = lastRefueling?.litros ?: 34.56f,
+            value = litros.value,
+            lastValue = (lastRefueling?.litros ?: 34.56f).toString(),
             onDataChange = {
-                viewModel.litros.postValue(it) }
+                viewModel.litros.value = it
+            }
         )
         Spacer(modifier = Modifier.height(8.dp))
         Lleno(
-            lleno = lleno.value!!,
-            onDataChange = { viewModel.lleno.postValue(it) }
+            lleno = lleno.value,
+            onDataChange = { viewModel.lleno.value = it }
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
-                viewModel.saveRefueling(autoId)
-                navController.navigate("historico")
+                viewModel.saveRefueling()
                 onNewRefueling()
             },
             modifier = Modifier.align(Alignment.CenterHorizontally),

@@ -1,5 +1,6 @@
 package com.example.autos.ui.refueling
 
+import android.util.Log
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,13 +9,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
@@ -30,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.autos.AutosStatus
 import com.example.autos.R
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.ui.composables.Dato
@@ -37,6 +43,7 @@ import com.example.autos.util.flipDate
 import com.example.autos.util.localFloatFormat
 import com.example.autos.util.localNumberFormat
 
+private const val TAG ="xxRs"
 
 @Composable
 fun RefuelingItem(repostaje: DomainRefueling){
@@ -46,6 +53,14 @@ fun RefuelingItem(repostaje: DomainRefueling){
         Modifier
             .fillMaxWidth()
     ){
+        if (expanded.value) {
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .width(4.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
         Row (Modifier.clickable {
             expanded.value = !expanded.value
         }) {
@@ -116,6 +131,12 @@ fun RefuelingItem(repostaje: DomainRefueling){
                     )
                 }
             }
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .width(4.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
         }
     }
 }
@@ -123,30 +144,41 @@ fun RefuelingItem(repostaje: DomainRefueling){
 @Composable
 fun RepostajesScreen(
     list: State<List<DomainRefueling>?>,
-    onListReceived: () -> Unit
+    status: State<AutosStatus?>
 ) {
-
-    if (list.value.isNullOrEmpty()){
-        Text(
-            text = stringResource(id = R.string.no_registers),
+    Log.d(TAG, "status: ${status.value}")
+    if (status.value == AutosStatus.LOADING){
+        CircularProgressIndicator(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(vertical = 52.dp),
-            fontWeight = FontWeight.ExtraBold,
-            textAlign = TextAlign.Center,
-            fontSize = 32.sp
+                .padding(64.dp),
+            color = MaterialTheme.colorScheme.tertiary,
+            trackColor = MaterialTheme.colorScheme.onTertiary,
+            strokeWidth = 16.dp
         )
     } else {
-        LazyColumn(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp)
-        ) {
-            onListReceived()
-            items(list.value!!) { item ->
-                RefuelingItem(item)
-                Spacer(modifier = Modifier.height(24.dp))
+        if (list.value.isNullOrEmpty()) {
+            Text(
+                text = stringResource(id = R.string.no_registers),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(vertical = 52.dp),
+                fontWeight = FontWeight.ExtraBold,
+                textAlign = TextAlign.Center,
+                fontSize = 32.sp
+            )
+        } else {
+            LazyColumn(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+            ) {
+//                onListReceived()
+                items(list.value!!) { item ->
+                    RefuelingItem(item)
+                    Spacer(modifier = Modifier.height(24.dp))
+                }
             }
         }
     }

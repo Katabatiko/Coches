@@ -1,4 +1,4 @@
-<resources>
+<resources >
     <string name="app_name">Autos</string>
     <string name="navigation_drawer_open">Abrir cajón de navegación</string>
     <string name="navigation_drawer_close">Cerrar cajón de navegación</string>
@@ -12,9 +12,11 @@
     <string name="matricula">Matrícula:</string>
     <string name="fecha_matriculacion">Fecha matriculación:</string>
     <string name="kms_iniciales">Kms iniciales:</string>
-    <string name="kilometraje">Kilometros:</string>
+    <string name="recorrido">Recorrido:</string>
     <string name="parcial">Parcial:</string>
     <string name="fecha_compra">Fecha de compra:</string>
+    <string name="kms_recorridos">Kms recorridos:</string>
+
     <string name="vehicle">Vehículo</string>
     <string name="vehicles">Vehículos</string>
     <string name="historico">Histórico</string>
@@ -25,33 +27,62 @@
     <string name="mes_anno_hint">09/11/2012</string>
     <string name="modelo">Modelo</string>
     <string name="marca">Marca</string>
+
     <string name="repostaje">Repostaje</string>
     <string name="new_repostaje">Nuevo repostaje</string>
     <string name="add_cost">Añadir gasto</string>
-    <string name="mantenimiento">Mantenimiento</string>
     <string name="fecha">Fecha: </string>
     <string name="set">Establecer</string>
     <string name="date_adjust">Ajustar fecha</string>
-    <string name="kilometros">Kilómetros: </string>
+    <string name="kilometros">Kilómetros:</string>
     <string name="kms">Kms: </string>
-    <string name="total_kms">Total kms: </string>
+    <string name="kms_">  kms.</string>
+    <string name="total_kms">Total kms:</string>
     <string name="litros">Litros: </string>
     <string name="euros_litro">€/l: </string>
     <string name="euros">Euros: </string>
+    <string name="Eu">  €</string>
     <string name="save">Guardar</string>
     <string name="full">Lleno</string>
-    <string name="error_faltan_datos">¡Faltan datos!</string>
-    <string name="kms_recorridos">Kms recorridos:</string>
+
+    <string name="mantenimiento">Mantenimiento</string>
+    <string name="concepto">Concepto</string>
+    <string name="importe">Importe</string>
+    <string name="gastos">Gastos</string>
+    <string name="items">Artículos</string>
+    <string name="addItems">Añadir Artículos</string>
+    <string name="add">Añadir</string>
+    <string name="cantidad">Cantidad</string>
+    <string name="cant">Uni</string>
+    <string name="descripcion">Descripción</string>
+    <string name="detalles">Detalles</string>
+    <string name="precio_unidad">€/Unidad</string>
+    <string name="euros_u">€/U: </string>
+    <string name="ivaDel">iva %d\%</string>
+    <string name="masIva">+ iva</string>
+    <string name="borrar">Eliminar artículo</string>
+    <string name="total">Total</string>
+    <string name="next">Siguiente</string>
+    <string name="finalizar">Finalizar</string>
+    <string name="buscar">Buscar</string>
+    <string name="last_time">Último cambio de %s hace %s kms.</string>
+
+    <string name="statistics">Estadísticas</string>
     <string name="consumo_medio">Consumo medio:</string>
     <string name="total_litros">Total litros:</string>
-    <string name="statistics">Estadísticas</string>
-    <string name="gasto_total">Gasto total:</string>
+    <string name="gasto_petrol_total">Gasto Combustible:</string>
+    <string name="total_mantenimiento">Mantenimiento:</string>
     <string name="precio_max">Precio máximo:</string>
     <string name="precio_min">Precio mínimo:</string>
+    <string name="totales">Totales</string>
+
+    <string name="error_faltan_datos">¡Faltan datos!</string>
     <string name="no_registers">Sin registros</string>
+    <string name="no_gastos">Sin gastos</string>
     <string name="no_vehicles">No hay vehículos</string>
     <string name="no_data">Sin datos</string>
     <string name="no_vehicle">Sin vehículo registrado</string>
+
     <string name="backup">Respaldo de datos</string>
     <string name="restore">Recuperar datos</string>
     <string name="respaldo">Respaldo</string>
@@ -61,6 +92,7 @@
     <string name="restored_cars">%d vehículos recuperados</string>
     <string name="saving_error">Hubo un error y no se pudo guardar los datos: </string>
     <string name="retrieving_error">No se pudo preparar los datos.</string>
+
     <string name="open">Abierto</string>
     <string name="close">Cerrado</string>
     <string name="mas">Más</string>

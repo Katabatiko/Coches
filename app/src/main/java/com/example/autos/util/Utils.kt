@@ -1,10 +1,6 @@
 package com.example.autos.util
 
-import android.widget.EditText
 import com.example.autos.NumberType
-import com.example.autos.domain.DomainCoche
-import com.example.autos.domain.DomainRefueling
-import com.google.android.material.textfield.TextInputLayout
 import java.math.RoundingMode
 import java.text.NumberFormat
 
@@ -54,11 +50,11 @@ fun textEmpty(textValue: String): Boolean{
     return textValue.isBlank()
 }
 
-fun numeroValido(value: String, type: NumberType): Boolean{
+fun numeroValido(value: String, type: NumberType, minValue: Int = 0): Boolean{
     when(type){
         NumberType.INT -> {
             val patern = Regex("[0-9]{1,7}")
-            return patern.matches(value)
+            return patern.matches(value) && value.toInt() > minValue
         }
         NumberType.FLOAT2 -> {
             val patern = Regex("""[0-9]{1,3}([.,][0-9]{1,2})?""")

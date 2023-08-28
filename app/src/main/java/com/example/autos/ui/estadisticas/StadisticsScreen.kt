@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.autos.R
@@ -43,10 +46,11 @@ fun StatisticsScreen (
 
     val maxPrice = viewModel.maxPrice.observeAsState()
     val minPrice = viewModel.minPrice.observeAsState()
-    val totalCost = viewModel.costeTotal.observeAsState()
+    val totalPetrolCost = viewModel.costeTotalPetrol/*.observeAsState()*/
     val totalPetrol = viewModel.petrolTotal.observeAsState()
     val totalAverage = viewModel.totalAverage.observeAsState()
-
+    val totalGastos = viewModel.totalGastos/*.observeAsState()*/
+//
     Column(
         Modifier
             .fillMaxWidth()
@@ -74,21 +78,26 @@ fun StatisticsScreen (
                 fontSize = 32.sp
             )
         } else {
-            Row(Modifier.fillMaxWidth()) {
-                Dato(
-                    value = localNumberFormat(totalTraveledKms),
-                    label = stringResource(id = R.string.kms_recorridos),
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = 12.dp)
-                )
-                Dato(
-                    value = localFloatFormat(totalPetrol.value ?: 0f),
-                    label = stringResource(id = R.string.total_litros),
-                    modifier = Modifier
-                        .weight(0.8f)
-                )
-            }
+            Text(
+                text = stringResource(id = R.string.totales),
+//                modifier = Modifier.padding(8.dp),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                textDecoration = TextDecoration.Underline
+            )
+            Dato(
+                value = localNumberFormat(totalTraveledKms) + stringResource(id = R.string.kms_),
+                label = stringResource(id = R.string.recorrido),
+                modifier = Modifier
+                    .padding(end = 8.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .width(4.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
             Spacer(modifier = Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth()) {
                 Dato(
@@ -96,47 +105,66 @@ fun StatisticsScreen (
                     label = stringResource(id = R.string.consumo_medio),
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 12.dp)
+                        .padding(end = 6.dp)
                 )
                 Dato(
-                    value = localFloatFormat(totalCost.value ?: 0f),
-                    label = stringResource(id = R.string.gasto_total),
+                    value = localFloatFormat(totalPetrol.value ?: 0f),
+                    label = stringResource(id = R.string.total_litros),
                     modifier = Modifier
-                        .weight(0.8f)
+                        .weight(0.9f)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+//            Spacer(modifier = Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth()) {
                 Dato(
                     value = localFloatFormat(maxPrice.value?.price ?: 0f),
                     label = stringResource(id = R.string.precio_max),
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 12.dp)
+                        .padding(end = 6.dp)
                 )
                 Dato(
                     value = flipDate((maxPrice.value?.fecha ?: "//")),
                     label = stringResource(id = R.string.fecha),
                     modifier = Modifier
-                        .weight(0.8f)
+                        .weight(0.9f)
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+//            Spacer(modifier = Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth()) {
                 Dato(
                     value = localFloatFormat(minPrice.value?.price ?: 0f),
                     label = stringResource(id = R.string.precio_min),
                     modifier = Modifier
                         .weight(1f)
-                        .padding(end = 12.dp)
+                        .padding(end = 6.dp)
                 )
                 Dato(
                     value = flipDate((minPrice.value?.fecha ?: "//")),
                     label = stringResource(id = R.string.fecha),
                     modifier = Modifier
-                        .weight(0.8f)
+                        .weight(0.9f)
                 )
             }
+            Dato(
+                value = localFloatFormat(totalPetrolCost.value ?: 0f) + stringResource(id = R.string.Eu),
+                label = stringResource(id = R.string.gasto_petrol_total),
+                modifier = Modifier
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Divider(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .width(4.dp),
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Dato(
+                value = localFloatFormat(totalGastos.value ?: 0f) + stringResource(id = R.string.Eu),
+                label = stringResource(id = R.string.total_mantenimiento),
+                modifier = Modifier
+                    .weight(0.8f)
+            )
         }
     }
 }

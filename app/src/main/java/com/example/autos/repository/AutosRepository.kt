@@ -2,11 +2,12 @@ package com.example.autos.repository
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import androidx.lifecycle.LiveData
 import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.CompoundPrice
 import com.example.autos.data.local.DbAuto
+import com.example.autos.data.local.DbGasto
+import com.example.autos.data.local.DbItem
 import com.example.autos.data.local.DbRefueling
 
 private const val TAG = "xxArepo"
@@ -26,6 +27,7 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
         }
     }
 
+    // AUTOS    ************************************
     suspend fun  insertAuto(auto: DbAuto): Long {
         return database.autosDao.insertAuto(auto)
     }
@@ -54,19 +56,25 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
         database.autosDao.updateAutoKms(cardId, lastKms)
     }
 
-    fun getAutoInitialKms(carId: Int): LiveData<Int>{
+    suspend fun getAutoInitialKms(carId: Int): Int{
         return database.autosDao.getAutoInitialKms(carId)
     }
 
+    fun getActualKms(autoId: Int): LiveData<Int> {
+        return database.autosDao.getActualKms(autoId)
+    }
+
+    // REPOSTAJES   ************************************
     suspend fun insertRefueling(refuel: DbRefueling) {
         database.autosDao.insertRefueling(refuel)
+        database.autosDao.updateAutoKms(refuel.cocheId, refuel.kms)
     }
 
     suspend fun getLastRefueling(carId: Int): DbRefueling? {
         return database.autosDao.getLastRefueling(carId)
     }
 
-    fun getRepostajes(carId: Int, offset: Int = 0): LiveData<List<DbRefueling>> {
+    suspend fun getRepostajes(carId: Int, offset: Int = 0): List<DbRefueling> {
         return database.autosDao.getRepostajes(carId)
     }
 
@@ -74,6 +82,7 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
         return database.autosDao.getAllRepostajes()
     }
 
+    // ESTADISTICAS ************************************
     suspend fun getTotalPetrol(carId: Int): Float? {
         return database.autosDao.getTotalPetrol(carId)
     }
@@ -88,5 +97,37 @@ class AutosRepository(private val database: AutosDatabase, application: Applicat
 
     fun getMinPrice(carId: Int): LiveData<CompoundPrice?> {
         return database.autosDao.getMinPrice(carId)
+    }
+
+    // MANTENIMIENTO
+    suspend fun insertGasto(gasto: DbGasto): Long {
+        val gastoId = database.autosDao.insertGasto(gasto)
+        if (gastoId.toInt() != -1)
+            database.autosDao.updateAutoKms(gasto.autoId, gasto.kms)
+        return gastoId
+    }
+
+    suspend fun getGastosByAuto(carId: Int): List<DbGasto>? {
+        return database.autosDao.getGastosByAuto(carId)
+    }
+
+    suspend fun getAllGastos(): List<DbGasto> {
+        return database.autosDao.getAllGastos()
+    }
+
+    suspend fun getTotalGastos(autoId: Int): Float? {
+        return database.autosDao.getTotalGastos(autoId)
+    }
+
+    suspend fun insertItem(item: DbItem) {
+        database.autosDao.insertItem(item)
+    }
+
+    suspend fun getItemsFromGasto(gastoId: Int): List<DbItem> {
+        return database.autosDao.getItemsFromGasto(gastoId)
+    }
+
+    suspend fun getAllItems(): List<DbItem> {
+        return database.autosDao.getAllItems()
     }
 }

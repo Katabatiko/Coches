@@ -6,7 +6,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [DbAuto::class, DbRefueling::class], version = 1)
+//@Database(entities = [DbAuto::class, DbRefueling::class], version = 1)
+@Database(entities = [DbAuto::class, DbRefueling::class, DbGasto::class, DbItem::class], version = 2, autoMigrations = [AutoMigration (from = 1, to = 2)])
 abstract class AutosDatabase: RoomDatabase() {
     abstract val autosDao: AutosDao
 

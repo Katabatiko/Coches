@@ -2,18 +2,21 @@ package com.example.autos.ui.refueling
 
 import android.app.Application
 import android.util.Log
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.autos.AutosStatus
+import com.example.autos.autoId
 import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.DbRefueling
-import com.example.autos.data.local.asListDomainModel
+import com.example.autos.data.local.asRefuelingListDomainModel
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.repository.AutosRepository
 import com.example.autos.util.flipDate
@@ -26,29 +29,24 @@ private const val TAG = "xxRvm"
 
 
 class RefuelingViewModel(
-    private val repository: AutosRepository,
-    application: Application
-) : AndroidViewModel(application) {
+    private val repository: AutosRepository
+) : ViewModel() {
 
-//    var carId = autoId
-    val refuelingDate = MutableLiveData("")
-    val actualKms = MutableLiveData("")
-    val precio = MutableLiveData("")
-    val coste = MutableLiveData("")
-    val litros = MutableLiveData("")
-    val lleno = MutableLiveData(false)
+    val refuelingDate: MutableState<String> = mutableStateOf("")
+    val actualKms: MutableState<String> = mutableStateOf("")
+    val precio: MutableState<String> = mutableStateOf("")
+    val coste: MutableState<String> = mutableStateOf("")
+    val litros: MutableState<String> = mutableStateOf("")
+    val lleno: MutableState<Boolean> = mutableStateOf(false)
 
     var initKms = 0
 
-    var repostajes: LiveData<List<DomainRefueling>> = repository.getRepostajes(repository.getActualAutoId()).asListDomainModel()
+    val repostajes = MutableLiveData<List<DomainRefueling>>()
 
 
-    private val _status = MutableLiveData<AutosStatus>()
-    val status: LiveData<AutosStatus>
-        get() = _status
+    val status: MutableState<AutosStatus> = mutableStateOf(AutosStatus.DONE)
 
     init {
-        _status.value = AutosStatus.LOADING
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) +1
@@ -57,7 +55,7 @@ class RefuelingViewModel(
     }
 
     fun resetStatus() {
-        _status.value = AutosStatus.DONE
+        status.value = AutosStatus.DONE
     }
 
     private fun resetData(){
@@ -68,7 +66,16 @@ class RefuelingViewModel(
         lleno.value = false
     }
 
-    fun setRecorridos() {
+    fun getRespostajes() {
+        status.value = AutosStatus.LOADING
+        viewModelScope.launch {
+            repostajes.value = repository.getRepostajes(autoId).asRefuelingListDomainModel()
+            setRecorridos()
+            status.value = AutosStatus.DONE
+        }
+    }
+
+    private fun setRecorridos() {
         val refuelings = repostajes.value
         if (!refuelings.isNullOrEmpty()) {
             refuelings.forEachIndexed { index, domainRefueling ->
@@ -88,42 +95,36 @@ class RefuelingViewModel(
     }
 
     fun calcularLitros(){
-        if (!precio.value.isNullOrBlank() && precio.value != "0")
-            litros.postValue(
+        if (precio.value.isNotBlank() && precio.value != "0")
+            litros.value =
                 redondeaDecimales(
-                    (coste.value!!
+                    (coste.value
                         .replace(",",".")
                         .toFloat()
                             /
-                    precio.value!!
+                    precio.value
                         .replace(",",".")
                         .toFloat()
                     ), 2).toString()
-            )
+//            )
     }
 
-    fun saveRefueling(autoId: Int) {
+    fun saveRefueling() {
         val refueling = DbRefueling(
             cocheId = autoId,
-            euros = coste.value!!.replace(",",".").toFloat(),
-            litros = litros.value!!.replace(",",".").toFloat(),
-            eurosLitro = precio.value!!.replace(",",".").toFloat(),
-            kms = actualKms.value!!.toInt(),
-            lleno = lleno.value!!,
-            fecha = flipDate(refuelingDate.value!!)
+            euros = coste.value.replace(",",".").toFloat(),
+            litros = litros.value.replace(",",".").toFloat(),
+            eurosLitro = precio.value.replace(",",".").toFloat(),
+            kms = actualKms.value.toInt(),
+            lleno = lleno.value,
+            fecha = flipDate(refuelingDate.value)
         )
         Log.d(TAG,"refueling last: $refueling")
-        updateAutoKms(autoId, refueling.kms)
+//        updateAutoKms(autoId, refueling.kms)
         viewModelScope.launch {
             repository.insertRefueling(refueling)
         }
         resetData()
-    }
-
-    fun updateAutoKms(carId: Int, autoKms: Int){
-        viewModelScope.launch {
-            repository.updateAutoKms(carId, autoKms)
-        }
     }
 
     companion object{
@@ -131,7 +132,7 @@ class RefuelingViewModel(
             initializer {
                 val application = this[APPLICATION_KEY] as Application
                 val repository = AutosRepository(AutosDatabase.getDatabase(application.applicationContext), application)
-                RefuelingViewModel(repository, application)
+                RefuelingViewModel(repository)
             }
         }
     }

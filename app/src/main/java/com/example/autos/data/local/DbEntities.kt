@@ -1,11 +1,12 @@
 package com.example.autos.data.local
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.autos.domain.DomainCoche
+import com.example.autos.domain.DomainGasto
+import com.example.autos.domain.DomainItem
 import com.example.autos.domain.DomainRefueling
 
 @Entity
@@ -21,7 +22,7 @@ data class DbAuto(
     val buyDate: String
 )
 
-fun DbAuto.asDomainModel(): DomainCoche{
+fun DbAuto.asLiveDataDomainAuto(): DomainCoche{
     return DomainCoche(
         id = this.id,
         marca = this.marca,
@@ -34,22 +35,7 @@ fun DbAuto.asDomainModel(): DomainCoche{
     )
 }
 
-fun LiveData<DbAuto>.asDomainModel(): LiveData<DomainCoche> {
-    return map {
-        DomainCoche(
-            id = it.id,
-            marca = it.marca,
-            modelo = it.modelo,
-            matricula = it.matricula,
-            year = it.year,
-            initKms = it.initKms,
-            actualKms = it.lastKms,
-            buyDate = it.buyDate
-        )
-    }
-}
-
-fun List<DbAuto>.asDomainModel(): List<DomainCoche> {
+fun LiveData<DbAuto>.asLiveDataDomainAuto(): LiveData<DomainCoche> {
     return map {
         DomainCoche(
             id = it.id,
@@ -95,7 +81,7 @@ data class DbRefueling(
     val lleno: Boolean
 )
 
-fun DbRefueling.asDomainModel(): DomainRefueling {
+fun DbRefueling.asRefuelingListDomainModel(): DomainRefueling {
     return DomainRefueling(
         refuelId = this.refuelId,
         cocheId = this.cocheId,
@@ -126,7 +112,7 @@ fun LiveData<DbRefueling?>.asLiveDataDomainModel(): LiveData<DomainRefueling?> {
     }
 }
 
-fun LiveData<List<DbRefueling>>.asListDomainModel(): LiveData<List<DomainRefueling>> {
+fun LiveData<List<DbRefueling>>.asLiveDataListDomainModel(): LiveData<List<DomainRefueling>> {
     return map { list ->
         list.map {
             DomainRefueling(
@@ -143,7 +129,7 @@ fun LiveData<List<DbRefueling>>.asListDomainModel(): LiveData<List<DomainRefueli
     }
 }
 
-fun List<DbRefueling>.asDomainModelList(): List<DomainRefueling> {
+fun List<DbRefueling>.asRefuelingListDomainModel(): List<DomainRefueling> {
     return map {
         DomainRefueling(
             refuelId = it.refuelId,
@@ -155,6 +141,57 @@ fun List<DbRefueling>.asDomainModelList(): List<DomainRefueling> {
             euros = it.euros,
             lleno = it.lleno
         )
+    }
+}
+
+@Entity
+data class DbGasto (
+    @PrimaryKey(autoGenerate = true)
+    var gastoId: Int = 0,
+    val fecha: String,
+    val concepto: String,
+    var autoId: Int,
+    val kms: Int,
+    val importe: Float
+)
+
+fun DbGasto.asGastoListDomainModel(): DomainGasto {
+    return DomainGasto(
+        gastoId = this.gastoId,
+        fecha = this.fecha,
+        concepto = this.concepto,
+        autoId = this.autoId,
+        kms = this.kms,
+        importe = this.importe,
+        items = listOf()
+    )
+}
+
+@Entity
+data class DbItem (
+    @PrimaryKey(autoGenerate = true)
+    var itemId: Int = 0,
+    var gastoId: Int,
+    val descripcion: String,
+    val marca: String?,
+    val precio: Float,
+    val cantidad: Int
+)
+
+fun DbItem.asDomainModel(): DomainItem {
+    return DomainItem(
+        itemId = this.itemId,
+        gastoId = this.gastoId,
+        descripcion = this.descripcion,
+        marca = this.marca,
+        precio = this.precio,
+        cantidad = this.cantidad
+    )
+}
+
+fun List<DbItem>.asItemsListDomainModel(): List<DomainItem> {
+    return map { dbItem ->
+        dbItem.asDomainModel()
     }
 }
 

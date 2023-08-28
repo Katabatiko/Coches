@@ -1,10 +1,7 @@
 package com.example.autos.ui.vehiculos
 
 import android.app.Application
-import android.util.Log
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.initializer
@@ -15,7 +12,7 @@ import com.example.autos.domain.DomainCoche
 import com.example.autos.repository.AutosRepository
 
 private const val TAG = "xxVvm"
-class VehiculosViewModel(private val repository: AutosRepository, application: Application) : AndroidViewModel(application) {
+class VehiculosViewModel(private val repository: AutosRepository) : ViewModel() {
 
     val vehicles: LiveData<List<DomainCoche>> = repository.getAllAutos().asListDomainAutoModel()
 
@@ -30,7 +27,7 @@ class VehiculosViewModel(private val repository: AutosRepository, application: A
             initializer {
                 val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
                 val repository = AutosRepository(AutosDatabase.getDatabase(application.applicationContext), application)
-                VehiculosViewModel(repository, application)
+                VehiculosViewModel(repository)
             }
         }
     }

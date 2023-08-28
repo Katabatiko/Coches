@@ -24,8 +24,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.autos.R
 import com.example.autos.domain.DomainCoche
 import com.example.autos.ui.composables.Dato
@@ -35,7 +33,6 @@ import com.example.autos.util.localNumberFormat
 @Composable
 fun AutoItem(
     auto: DomainCoche,
-    navController: NavController,
     setAutoId: (Int) -> Unit
 ) {
     Column(
@@ -44,9 +41,6 @@ fun AutoItem(
             .padding(horizontal = 8.dp)
             .clickable {
                 setAutoId(auto.id)
-                navController.navigate("home")
-                // si cambia el coche se elimina el stacK
-//                navController.popBackStack("home", false)
             }
     ) {
         Text(
@@ -67,7 +61,7 @@ fun AutoItem(
             )
             Dato(
                 value = localNumberFormat(auto.actualKms),
-                label = stringResource(id = R.string.kilometraje),
+                label = stringResource(id = R.string.kilometros),
                 modifier = Modifier.weight(1f),
                 labelModifier = Modifier.padding(end = 6.dp)
             )
@@ -78,7 +72,7 @@ fun AutoItem(
 @Composable
 fun VehiclesScreen(
     list: State<List<DomainCoche>?>,
-    navController: NavController,
+    goToNewCar: () -> Unit,
     setAutoId: (Int) -> Unit
 ) {
 
@@ -86,7 +80,7 @@ fun VehiclesScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = {
-                    navController.navigate("newCar")
+                    goToNewCar()
                 }
             ){
                 Icon(
@@ -108,7 +102,6 @@ fun VehiclesScreen(
                     items (list.value!!) { item ->
                         AutoItem(
                             auto = item,
-                            navController,
                             setAutoId = { autoId -> setAutoId(autoId) }
                         )
                         Spacer(modifier = Modifier.height(24.dp))
@@ -121,7 +114,7 @@ fun VehiclesScreen(
 
 @Preview
 @Composable
-fun Item() {
+fun PreviewItem() {
     val auto = DomainCoche(
         initKms = 221423,
         buyDate = "2013/09/26",
@@ -135,7 +128,6 @@ fun Item() {
 
     AutoItem(
         auto = auto,
-        navController = rememberNavController(),
         setAutoId = {}
     )
 }

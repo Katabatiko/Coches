@@ -16,19 +16,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusManager
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -40,196 +33,13 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.autos.NumberType
 import com.example.autos.R
-import com.example.autos.ui.composables.DatePickerView
+import com.example.autos.ui.composables.DateInput
+import com.example.autos.ui.composables.StringInput
 import com.example.autos.util.numeroValido
 import com.example.autos.util.textEmpty
 import com.example.autos.util.validacion
 import kotlinx.coroutines.launch
 
-
-@Composable
-private fun ModeloInput(
-    focusManager: FocusManager,
-    modeloInput: String,
-    onDataChange: (String) -> Unit
-) {
-    val error = remember { mutableStateOf(false) }
-    val focusRequester = remember { FocusRequester() }
-
-    OutlinedTextField(
-        value = TextFieldValue(modeloInput, TextRange(modeloInput.length)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp)
-            .focusRequester(focusRequester),
-        onValueChange = {
-            onDataChange(it.text)
-            error.value = textEmpty(it.text)
-        },
-        isError = error.value,
-        label = { Text(stringResource(id = R.string.modelo)) },
-        keyboardOptions = KeyboardOptions( imeAction = ImeAction.Next ),
-        keyboardActions = KeyboardActions(
-            onNext = {
-                error.value = textEmpty(modeloInput)
-                focusManager.moveFocus(FocusDirection.Next)
-            }
-        )
-    )
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-}
-
-@Composable
-private fun MarcaInput(
-    focusManager: FocusManager,
-    marcaInput: String,
-    onDataChange: (String) -> Unit
-) {
-    val error = remember { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = TextFieldValue(marcaInput, TextRange(marcaInput.length)),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        onValueChange = {
-            onDataChange(it.text)
-            error.value = textEmpty(it.text)
-        },
-        isError = error.value,
-        label = { Text(stringResource(id = R.string.marca)) },
-        keyboardOptions = KeyboardOptions( imeAction = ImeAction.Next ),
-        keyboardActions = KeyboardActions(
-            onNext = {
-                error.value = textEmpty(marcaInput)
-                focusManager.moveFocus(FocusDirection.Next)
-            }
-        )
-    )
-}
-
-@Composable
-private fun MatriculacionInput(
-    focusManager: FocusManager,
-    matriculacionInput: String,
-    onDataChange: (String) -> Unit
-) {
-    val matriculacionFocus = rememberSaveable { mutableStateOf(false) }
-
-    val error = remember { mutableStateOf(false) }
-
-    if (matriculacionFocus.value){
-        DatePickerView(
-            stringResource(id = R.string.fecha_matriculacion),
-            Modifier.fillMaxWidth(),
-            fieldInput = onDataChange,
-            changeDate = { matriculacionFocus.value = it},
-        )
-    } else {
-        OutlinedTextField(
-            value = matriculacionInput,
-            onValueChange = {
-                onDataChange(it)
-                error.value = textEmpty(it)
-            },
-            label = { Text(stringResource(id = R.string.fecha_matriculacion)) },
-            modifier = Modifier
-                .onFocusChanged { state ->
-                    if (state.isFocused) {
-                        matriculacionFocus.value = true
-                    }
-                }
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            isError = error.value,
-            readOnly = true,
-            keyboardOptions = KeyboardOptions( imeAction = ImeAction.Next ),
-            keyboardActions = KeyboardActions(
-                onNext = {
-                    error.value = textEmpty(matriculacionInput)
-                    focusManager.moveFocus(FocusDirection.Next)
-                }
-            )
-        )
-    }
-}
-
-@Composable
-private fun MatriculaInput(
-    focusManager: FocusManager,
-    matriculaInput: String,
-    onDataChange: (String) -> Unit
-
-) {
-    val error = remember { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = TextFieldValue(matriculaInput, TextRange(matriculaInput.length)),
-        onValueChange = {
-            onDataChange(it.text)
-            error.value = textEmpty(it.text)
-        },
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        isError = error.value,
-        label = { Text(stringResource(id = R.string.matricula)) },
-        keyboardOptions = KeyboardOptions( imeAction = ImeAction.Next ),
-        keyboardActions = KeyboardActions(
-            onNext = {
-                error.value = textEmpty(matriculaInput)
-                focusManager.moveFocus(FocusDirection.Next)
-            }
-        )
-    )
-}
-
-@Composable
-private fun BuyDateInput(
-    focusManager: FocusManager,
-    buyDateInput: String,
-    onDataChange: (String) -> Unit
-) {
-    val buyDateFocus = rememberSaveable { mutableStateOf(false) }
-
-    val error = remember { mutableStateOf(false) }
-
-    if (buyDateFocus.value){
-        DatePickerView(
-            stringResource(id = R.string.fecha_compra), Modifier.fillMaxWidth(),
-            fieldInput = onDataChange,
-            changeDate = { buyDateFocus.value = it}
-        )
-    } else {
-        OutlinedTextField(
-            value = buyDateInput,
-            onValueChange = {
-                onDataChange(it)
-                error.value = textEmpty(it)
-            },
-            label = { Text(stringResource(id = R.string.fecha_compra)) },
-            isError = error.value,
-            modifier = Modifier
-                .onFocusChanged { state ->
-                    if (state.isFocused) {
-                        buyDateFocus.value = true
-                    }
-                }
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            keyboardOptions = KeyboardOptions( imeAction = ImeAction.Next ),
-            keyboardActions = KeyboardActions(
-                onNext = {
-                    error.value = textEmpty(buyDateInput)
-                    focusManager.moveFocus(FocusDirection.Next)
-                }
-            ),
-            readOnly = true
-        )
-    }
-}
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -282,76 +92,91 @@ fun NewAutoScreen(
 ) {
     val state = rememberScrollState()
 
-    val modeloInput = viewModel.modelo.observeAsState()
-    val marcaInput = viewModel.marca.observeAsState()
-    val matriculaInput = viewModel.matricula.observeAsState()
-    val matriculacionInput = viewModel.fechaMatriculacion.observeAsState()
-    val buyDateInput = viewModel.fechaCompra.observeAsState()
-    val initKmsInput = viewModel.initKms.observeAsState()
+    val modeloInput = viewModel.modelo
+    val marcaInput = viewModel.marca
+    val matriculaInput = viewModel.matricula
+    val matriculacionInput = viewModel.fechaMatriculacion
+    val buyDateInput = viewModel.fechaCompra
+    val initKmsInput = viewModel.initKms
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 24.dp, start = 48.dp, end = 48.dp)
             .verticalScroll(state)
+//            .imePadding()
     ) {
         val focusManager = LocalFocusManager.current
 
-        ModeloInput(
-            focusManager,
-            modeloInput.value ?: "",
-            onDataChange = { viewModel.modelo.postValue(it) }
+        StringInput(
+            label = stringResource(id = R.string.modelo),
+            focusManager = focusManager,
+            focusRequest = true,
+            stringInput = modeloInput.value,
+            onDataChange = { viewModel.modelo.value = it }
         )
+
         Spacer(modifier = Modifier.height(8.dp))
-        MarcaInput(
-            focusManager,
-            marcaInput.value ?: "",
-            onDataChange = { viewModel.marca.postValue(it) }
+        StringInput(
+            label = stringResource(id = R.string.marca),
+            focusManager = focusManager,
+            stringInput = marcaInput.value,
+            onDataChange = { viewModel.marca.value = it }
         )
+
         Spacer(modifier = Modifier.height(8.dp))
-        MatriculaInput(
-            focusManager,
-            matriculaInput.value ?: "",
-            onDataChange = { viewModel.matricula.postValue(it) }
+        StringInput(
+            label = stringResource(id = R.string.matricula),
+            focusManager = focusManager,
+            stringInput = matriculaInput.value,
+            onDataChange = { viewModel.matricula.value = it }
         )
+
         Spacer(modifier = Modifier.height(8.dp))
-        MatriculacionInput(
-            focusManager,
-            matriculacionInput.value ?: "",
-            onDataChange = {
-                viewModel.fechaMatriculacion.postValue(it)
-            }
+        DateInput(
+            label = stringResource(id = R.string.fecha_matriculacion),
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            focusManager = focusManager,
+            dateInput = matriculacionInput.value,
+            onDataChange = { viewModel.fechaMatriculacion.value = it }
         )
+
         Spacer(modifier = Modifier.height(8.dp))
-        BuyDateInput(
-            focusManager,
-            buyDateInput.value ?: "",
-            onDataChange = { viewModel.fechaCompra.postValue(it) }
+        DateInput(
+            label = stringResource(id = R.string.fecha_compra),
+            modifier = Modifier.fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            focusManager = focusManager,
+            dateInput = buyDateInput.value,
+            onDataChange = { viewModel.fechaCompra.value = it }
         )
+
         Spacer(modifier = Modifier.height(8.dp))
         InitKmsInput(
             focusManager,
-            initKmsInput.value ?: "",
-            onDataChange = { viewModel.initKms.postValue(it) }
+            initKmsInput.value,
+            onDataChange = { viewModel.initKms.value = it }
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(
             onClick = {
                 viewModel.saveAuto()
-                navController.navigate("home")
-                // si cambia el coche se elimina el stack
-//                navController.popBackStack("home", true)
+                navController.navigate("home") {
+                    // si cambia el coche se elimina el stack
+                    popUpTo("home")
+                }
                       },
             modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = validacion(
                 listOf(
-                    modeloInput.value!!,
-                    marcaInput.value!!,
-                    matriculacionInput.value!!,
-                    matriculaInput.value!!,
-                    buyDateInput.value!!
+                    modeloInput.value,
+                    marcaInput.value,
+                    matriculacionInput.value,
+                    matriculaInput.value,
+                    buyDateInput.value
                 )
-            ) && numeroValido(initKmsInput.value!!, NumberType.INT)
+            ) && numeroValido(initKmsInput.value, NumberType.INT)
         ) {
             Text(stringResource(id = R.string.save))
         }
