@@ -58,6 +58,7 @@ import com.example.autos.util.redondeaDecimales
 import com.example.autos.util.textEmpty
 
 private const val TAG = "xxNis"
+
 @Composable
 fun NewItemsScreen(
     viewModel: GastosViewModel,
@@ -76,7 +77,6 @@ fun NewItemsScreen(
         Modifier
             .fillMaxSize()
             .padding(8.dp)
-//            .verticalScroll(state)
     ) {
         Text(
             text = stringResource(id = R.string.addItems),
@@ -85,21 +85,17 @@ fun NewItemsScreen(
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center
         )
-        NewItem(
-            viewModel,
-//            Modifier.weight(4f)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        NewItem( viewModel )
 
+        Spacer(modifier = Modifier.height(8.dp))
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.4f),
             state = state
-//                .weight(3f)
         ){
             item {
-                Header(/*modifier = Modifier.weight(0.1f)*/)
+                Header()
             }
             items(list.value!!){ item ->
                 Item(
@@ -132,8 +128,7 @@ fun NewItemsScreen(
         Row(
             Modifier
                 .padding(end = 16.dp)
-                .fillMaxWidth()
-                /*.weight(0.5f)*/,
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
             Text(
@@ -156,14 +151,12 @@ fun NewItemsScreen(
         }
         Button(
             onClick = {
+                viewModel.makeGasto()
                 navController.navigate("gasto")
-//                viewModel.cleanItemInput()
-//                viewModel.cleanGastoInputs()
                 Log.d(TAG, viewModel.newItemList.value.toString())
             },
             modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                /*.weight(1f)*/,
+                .align(Alignment.CenterHorizontally),
             enabled = list.value!!.isNotEmpty()
         ) {
             Text(stringResource(id = R.string.finalizar))
@@ -211,43 +204,48 @@ fun NewItem(
 
     val cantidad = viewModel.cantidad.observeAsState()
     val descripcion = viewModel.descripcion.observeAsState()
-    val marca = viewModel.marca.observeAsState()
+    val detalle = viewModel.detalle.observeAsState()
     val precio = viewModel.precio.observeAsState()
 
 
     Column(
-        modifier = modifier,
-//        verticalArrangement = Arrangement.SpaceEvenly
+        modifier = modifier
     ) {
         val focusRequester = remember { FocusRequester() }
+        val errorConcepto = rememberSaveable { mutableStateOf(false) }
 
         OutlinedTextField(
             value = TextFieldValue(descripcion.value!!, TextRange(descripcion.value!!.length)),
-            onValueChange = { viewModel.descripcion.postValue(it.text) },
+            onValueChange = {
+                viewModel.descripcion.postValue(it.text)
+                errorConcepto.value = textEmpty(it.text)
+            },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp)
                 .focusRequester(focusRequester),
             label = { Text(text = stringResource(id = R.string.descripcion))},
+            isError = errorConcepto.value,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(
                 onNext = {
+                    errorConcepto.value = textEmpty(descripcion.value!!)
                     focusManager.moveFocus(FocusDirection.Next)
                 }
             )
         )
         OutlinedTextField(
-            value = TextFieldValue(marca.value!!, TextRange(marca.value!!.length)),
-            onValueChange = { viewModel.marca.postValue(it.text) },
+            value = TextFieldValue(detalle.value!!, TextRange(detalle.value!!.length)),
+            onValueChange = { viewModel.detalle.postValue(it.text) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
             label = { Text(text = stringResource(id = R.string.detalles))},
             keyboardOptions = KeyboardOptions(
-                capitalization = KeyboardCapitalization.Words,
+                capitalization = KeyboardCapitalization.Sentences,
                 imeAction = ImeAction.Next
             ),
             keyboardActions = KeyboardActions(
@@ -273,11 +271,6 @@ fun NewItem(
                     .fillMaxWidth()
                     .align(Alignment.CenterVertically)
                     .weight(0.3f),
-//                    .onFocusChanged {
-//                        if (it.isFocused) {
-//                                            selec
-//                        }
-//                    },
                 label = { Text(
                     text = stringResource(id = R.string.cantidad),
                     overflow = TextOverflow.Ellipsis,
@@ -322,7 +315,6 @@ fun NewItem(
         }
 
         Spacer(modifier = Modifier.height(6.dp))
-
         Button(
             onClick = {
                 viewModel.addItem()

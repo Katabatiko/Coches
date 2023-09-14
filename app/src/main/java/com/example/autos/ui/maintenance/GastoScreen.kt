@@ -70,7 +70,7 @@ fun GastoScreen(
             textAlign = TextAlign.Center
         )
         Header()
-        Column() {
+        Column {
             gasto.items.forEach { item ->
                 WholeItem(
                     item = item
@@ -84,10 +84,18 @@ fun GastoScreen(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.Bottom
         ) {
-            Button(onClick = { onSave(false) }) {
+            Button(
+                onClick = {
+                    onSave(false)
+                }
+            ) {
                 Text(stringResource(id = android.R.string.cancel))
             }
-            Button(onClick = { onSave(true) }) {
+            Button(
+                onClick = {
+                    onSave(true)
+                }
+            ) {
                 Text(stringResource(id = R.string.save))
             }
         }
@@ -97,7 +105,7 @@ fun GastoScreen(
 
 @Composable
 fun WholeItem(item: DomainItem) {
-    Column() {
+    Column {
         Row(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -121,11 +129,10 @@ fun WholeItem(item: DomainItem) {
             )
         }
         if (item.descripcion != "iva $IVA%") {
-            Row(
-            ) {
+            Row {
                 Spacer(modifier = Modifier.weight(1f))
                 Text(
-                    text = item.marca ?: "",
+                    text = item.detalle ?: "",
                     modifier = Modifier.weight(6.5f),
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1
@@ -151,7 +158,7 @@ fun PreviewGastoScreen() {
         itemId = 0,
         gastoId = 9,
         descripcion = "Aceite",
-        marca = "BP",
+        detalle = "BP",
         precio = 15.99f,
         cantidad = 1
     )
@@ -159,7 +166,7 @@ fun PreviewGastoScreen() {
         itemId = 0,
         gastoId = 9,
         descripcion = "Filtro de Aceite",
-        marca = "Mecafilter",
+        detalle = "Mecafilter",
         precio = 5.70f,
         cantidad = 1
     )
@@ -167,7 +174,7 @@ fun PreviewGastoScreen() {
         itemId = 0,
         gastoId = 9,
         descripcion = "Filtro de Aire",
-        marca = "Knecht",
+        detalle = "Knecht",
         precio = 21.42f,
         cantidad = 1
     )

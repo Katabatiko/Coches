@@ -18,7 +18,6 @@ private const val TAG = "xxNcvm"
 
 class NewCarViewModel(private val repository: AutosRepository) : ViewModel() {
 
-
     val modelo: MutableState<String> = mutableStateOf("")
     val marca: MutableState<String> = mutableStateOf("")
     val matricula: MutableState<String> = mutableStateOf("")
@@ -31,7 +30,7 @@ class NewCarViewModel(private val repository: AutosRepository) : ViewModel() {
         val auto = DbAuto(
             modelo = modelo.value,
             marca = marca.value,
-            matricula = matricula.value,
+            matricula = matricula.value.uppercase(),
             year = fechaMatriculacion.value,
             buyDate = flipDate(fechaCompra.value),
             initKms = (initKms.value).toInt(),

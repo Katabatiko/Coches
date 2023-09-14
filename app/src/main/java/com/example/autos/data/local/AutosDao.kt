@@ -36,24 +36,30 @@ interface AutosDao {
     suspend fun updateAutoKms(carId: Int, lastKms: Int)
 
     @Query("select lastKms from DbAuto where id= :autoId")
-    fun getActualKms(autoId: Int): LiveData<Int>
+    suspend fun getActualKms(autoId: Int): Int
 
 
     // REPOSTAJES
     @Insert(entity = DbRefueling::class)
-    suspend fun insertRefueling(refuel: DbRefueling)
+    suspend fun insertRefueling(refuel: DbRefueling): Long
 
     @Query("select * from DbRefueling where cocheId= :carId order by kms desc limit 1")
     suspend fun getLastRefueling(carId: Int): DbRefueling?
 
-    @Query("select * from DbRefueling where cocheId= :carId order by kms desc")
-//    fun getRepostajes(carId: Int): LiveData<List<DbRefueling>>
-    suspend fun getRepostajes(carId: Int): List<DbRefueling>
+    @Query("select * from DbRefueling where cocheId= :carId order by kms desc limit :offset, 10")
+    suspend fun getRepostajes(carId: Int, offset: Int): List<DbRefueling>
 
     @Query("select * from DbRefueling")
     suspend fun getAllRepostajes(): List<DbRefueling>
 
+
     // ESTADISTICAS
+    @Query("select max(fecha) as latest, min(fecha) as oldest from dbrefueling where cocheId = :carId")
+    suspend fun getDateRange(carId: Int): DateRange?
+
+    @Query("select sum(recorrido) from dbrefueling where cocheId= :carId and fecha like :year")
+    suspend fun getKmsByYear(carId: Int, year: String): Int?
+
     @Query("select sum(euros) from DbRefueling where cocheId= :carId")
     suspend fun getTotalCost(carId: Int): Float?
 
@@ -61,16 +67,28 @@ interface AutosDao {
     suspend fun getTotalPetrol(carId: Int): Float?
 
     @Query("select max(eurosLitro) as price, fecha from DbRefueling where cocheId= :carId")
-    fun getMaxPrice(carId: Int): LiveData<CompoundPrice?>
+    fun getTotalMaxPrice(carId: Int): LiveData<CompoundPrice>
 
     @Query("select min(eurosLitro) as price, fecha from DbRefueling where cocheId= :carId")
-    fun getMinPrice(carId: Int): LiveData<CompoundPrice?>
+    fun getTotalMinPrice(carId: Int): LiveData<CompoundPrice>
+
+    @Query("select max(eurosLitro) as price, fecha from DbRefueling where cocheId= :carId and fecha like :year")
+    suspend fun getMaxPriceByYear(carId: Int, year: String): CompoundPrice
+
+    @Query("select min(eurosLitro) as price, fecha from DbRefueling where cocheId= :carId and fecha like :year")
+    suspend fun getMinPriceByYear(carId: Int, year: String): CompoundPrice
+
+    @Query("select * from dbrefueling where cocheId= :carId and lleno=1 order by kms desc")
+    suspend fun getLastFullRefueling(carId: Int): List<DbRefueling>
+
+    @Query("select * from dbrefueling where cocheId= :carId and kms between :init and :end order by kms desc")
+    suspend fun getLastFullRefuelingAndAmongThen(carId: Int, init: Int, end: Int): List<DbRefueling>
 
     // MANTENIMIENTO
     @Insert(entity = DbGasto::class)
     suspend fun insertGasto(gasto: DbGasto): Long
 
-    @Query("select * from DbGasto where autoId= :carId order by fecha desc")
+    @Query("select * from DbGasto where autoId= :carId order by kms desc")
     suspend fun getGastosByAuto(carId: Int): List<DbGasto>?
 
     @Query("select * from DbGasto")
@@ -87,4 +105,15 @@ interface AutosDao {
 
     @Query("select * from DbItem")
     suspend fun getAllItems(): List<DbItem>
+
+    @Query("select max(kms) from dbgasto where autoId= :autoId" +
+            " and (concepto like :concepto or gastoId in" +
+            " (select gastoId from dbitem where descripcion like :concepto ))")
+    suspend fun getLastSpareChange(autoId: Int, concepto: String): Int?
+
+    @Query("select * from dbgasto where autoId= :autoId" +
+            " and (concepto like :concepto or gastoId in" +
+            " (select gastoId from dbitem where descripcion like :concepto )) order by kms desc")
+    suspend fun getCambiosRueda(autoId: Int, concepto: String): List<DbGasto>
+
 }

@@ -6,6 +6,13 @@ import java.text.NumberFormat
 
 private const val TAG = "xxUtils"
 
+enum class Limits(val lowLimit: Int, val highLimit: Int){
+    // KMS
+    OIL ( 10000, 15000 ),
+    AIR (15000, 25000 ),
+    TIRES (20000, 30000)
+}
+
 fun localNumberFormat(number: Int): String{
     return NumberFormat.getInstance().format(number)
 }
@@ -20,18 +27,26 @@ fun redondeaDecimales(float: Float, decimales: Int): Float{
         .toFloat()
 }
 
-fun flipDate(date: String): String{
-    var partes = date.split("/")
-    partes = partes.reversed()
-    val template = "%s/%s/%s"
-    return String.format(template, partes[0], partes[1], partes[2])
+fun flipDate(date: String?): String{
+    return if (date != null) {
+                var partes = date.split("/")
+                partes = partes.reversed()
+                val template = "%s/%s/%s"
+                String.format(template, partes[0], partes[1], partes[2])
+            } else ""
+}
+
+fun flipAndSortDate(date: String): String {
+    val partes = date.split("/")
+    val template = "%s/%s"
+    return String.format(template, partes[2], partes[1])
 }
 
 fun standardizeDate(date: String): String{
     val partes = date.split("/").toMutableList()
     if (partes[0].length < 2)                       partes[0] = "0${partes[0]}"
-    if (partes.size > 2 && partes[1].length < 2)    partes[1] = "0${partes[1]}"
-//    Log.d(TAG,"fecha estandarizada: ${partes.joinToString("/")}")
+    if (partes[1].length < 2)    partes[1] = "0${partes[1]}"
+
     return partes.joinToString("/")
 }
 

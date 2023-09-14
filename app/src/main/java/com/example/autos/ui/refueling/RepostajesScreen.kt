@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -22,7 +22,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -35,7 +34,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.autos.AutosStatus
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
 import com.example.autos.R
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.ui.composables.Dato
@@ -66,7 +66,7 @@ fun RefuelingItem(repostaje: DomainRefueling){
         }) {
             Text(
                 text = flipDate(repostaje.fecha),
-                modifier = Modifier.weight(0.25f),
+                modifier = Modifier.weight(0.28f),
                 fontWeight = FontWeight.Bold,
                 fontStyle = FontStyle.Italic,
                 overflow = TextOverflow.Ellipsis,
@@ -75,7 +75,7 @@ fun RefuelingItem(repostaje: DomainRefueling){
             Dato(
                 value = localNumberFormat(repostaje.kms),
                 label = stringResource(R.string.kms),
-                modifier = Modifier.weight(0.40f),
+                modifier = Modifier.weight(0.37f),
                 labelModifier = Modifier.padding(end = 4.dp)
             )
             Dato(
@@ -143,41 +143,49 @@ fun RefuelingItem(repostaje: DomainRefueling){
 
 @Composable
 fun RepostajesScreen(
-    list: State<List<DomainRefueling>?>,
-    status: State<AutosStatus?>
+    list: LazyPagingItems<DomainRefueling>
 ) {
-    Log.d(TAG, "status: ${status.value}")
-    if (status.value == AutosStatus.LOADING){
-        CircularProgressIndicator(
+    if (list.itemCount == 0){
+        Text(
+            text = stringResource(id = R.string.no_registers),
             modifier = Modifier
                 .fillMaxSize()
-                .padding(64.dp),
-            color = MaterialTheme.colorScheme.tertiary,
-            trackColor = MaterialTheme.colorScheme.onTertiary,
-            strokeWidth = 16.dp
+                .padding(top = 52.dp),
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center,
+            fontSize = 32.sp
         )
     } else {
-        if (list.value.isNullOrEmpty()) {
-            Text(
-                text = stringResource(id = R.string.no_registers),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = 52.dp),
-                fontWeight = FontWeight.ExtraBold,
-                textAlign = TextAlign.Center,
-                fontSize = 32.sp
-            )
-        } else {
-            LazyColumn(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            ) {
-//                onListReceived()
-                items(list.value!!) { item ->
-                    RefuelingItem(item)
-                    Spacer(modifier = Modifier.height(24.dp))
+        LazyColumn(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp)
+        ) {
+            if (list.loadState.refresh == LoadState.Loading) {
+//                Log.d(TAG,"lazyColumn refresh: ${list.itemCount}")
+                item {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                    )
+                }
+            }
+
+            items(count = list.itemCount) { index ->
+                RefuelingItem(list[index]!!)
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+
+            if (list.loadState.append == LoadState.Loading) {
+                Log.d(TAG, "lazyColumn append: ${list.itemCount}")
+                item {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .wrapContentWidth(Alignment.CenterHorizontally)
+                    )
                 }
             }
         }

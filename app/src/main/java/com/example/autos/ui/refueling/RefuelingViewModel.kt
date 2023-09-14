@@ -4,29 +4,33 @@ import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
 import com.example.autos.AutosStatus
 import com.example.autos.autoId
 import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.DbRefueling
-import com.example.autos.data.local.asRefuelingListDomainModel
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.repository.AutosRepository
+import com.example.autos.repository.RefuelingsPagingSource
 import com.example.autos.util.flipDate
 import com.example.autos.util.redondeaDecimales
 import com.example.autos.util.standardizeDate
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
 private const val TAG = "xxRvm"
-
 
 class RefuelingViewModel(
     private val repository: AutosRepository
@@ -40,11 +44,10 @@ class RefuelingViewModel(
     val lleno: MutableState<Boolean> = mutableStateOf(false)
 
     var initKms = 0
+    val lastKms: MutableState<Int> = mutableStateOf(0)
+    var lastRefuelKms = 0
 
-    val repostajes = MutableLiveData<List<DomainRefueling>>()
-
-
-    val status: MutableState<AutosStatus> = mutableStateOf(AutosStatus.DONE)
+    val pagingRefuels: Flow<PagingData<DomainRefueling>>
 
     init {
         val calendar = Calendar.getInstance()
@@ -52,10 +55,18 @@ class RefuelingViewModel(
         val month = calendar.get(Calendar.MONTH) +1
         val day = calendar.get(Calendar.DAY_OF_MONTH)
         refuelingDate.value = standardizeDate("$day/$month/$year")
-    }
+        pagingRefuels =
+            Pager(
+                config = PagingConfig(pageSize = 10),
+                initialKey = 1,
+                pagingSourceFactory = {
+                    RefuelingsPagingSource(repository, autoId)
+                }
+            ).flow.cachedIn(viewModelScope)
 
-    fun resetStatus() {
-        status.value = AutosStatus.DONE
+        viewModelScope.launch {
+            lastKms.value  = repository.getActualKms(autoId)
+        }
     }
 
     private fun resetData(){
@@ -64,34 +75,6 @@ class RefuelingViewModel(
         litros.value = ""
         coste.value = ""
         lleno.value = false
-    }
-
-    fun getRespostajes() {
-        status.value = AutosStatus.LOADING
-        viewModelScope.launch {
-            repostajes.value = repository.getRepostajes(autoId).asRefuelingListDomainModel()
-            setRecorridos()
-            status.value = AutosStatus.DONE
-        }
-    }
-
-    private fun setRecorridos() {
-        val refuelings = repostajes.value
-        if (!refuelings.isNullOrEmpty()) {
-            refuelings.forEachIndexed { index, domainRefueling ->
-                if (domainRefueling.recorrido == 0) {
-                    val lastKms = if (index < (refuelings.size - 1)) {
-                                        // al venir ordenados por kms decreciente
-                                        // todos menos el primero (menor kms)
-                                        refuelings[index + 1].kms
-                                    } else {
-                                        // refenencia del primero son los kms iniciales
-                                        initKms
-                                    }
-                    domainRefueling.recorrido = (domainRefueling.kms - lastKms)
-                }
-            }
-        } else  Log.d(TAG,"repostajes vacio o nulo")
     }
 
     fun calcularLitros(){
@@ -109,7 +92,7 @@ class RefuelingViewModel(
 //            )
     }
 
-    fun saveRefueling() {
+    fun saveRefueling(): Deferred<Boolean> {
         val refueling = DbRefueling(
             cocheId = autoId,
             euros = coste.value.replace(",",".").toFloat(),
@@ -117,14 +100,33 @@ class RefuelingViewModel(
             eurosLitro = precio.value.replace(",",".").toFloat(),
             kms = actualKms.value.toInt(),
             lleno = lleno.value,
-            fecha = flipDate(refuelingDate.value)
+            fecha = flipDate(refuelingDate.value),
+            recorrido = actualKms.value.toInt() - lastRefuelKms
         )
-        Log.d(TAG,"refueling last: $refueling")
-//        updateAutoKms(autoId, refueling.kms)
-        viewModelScope.launch {
-            repository.insertRefueling(refueling)
+
+        return viewModelScope.async {
+            return@async insertRefueling(refueling)
         }
-        resetData()
+    }
+
+    private suspend fun insertRefueling(refueling: DbRefueling): Boolean {
+        val deferredResult = viewModelScope.async {
+            val id: Int
+            try {
+                id = repository.insertRefueling(refueling, lastKms.value < refueling.kms)
+            } catch (e: Exception) {
+                Log.e(TAG,"Error de insercion: $e")
+                return@async false
+            }
+            resetData()
+            (id != -1)
+        }
+
+        return try {
+            deferredResult.await()
+        } catch (e: Exception) {
+            false
+        }
     }
 
     companion object{

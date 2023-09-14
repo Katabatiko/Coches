@@ -17,11 +17,12 @@ import com.example.autos.data.local.DbAuto
 import com.example.autos.data.local.DbGasto
 import com.example.autos.data.local.DbItem
 import com.example.autos.data.local.DbRefueling
-import com.example.autos.data.local.asLiveDataDomainAuto
-import com.example.autos.data.local.asRefuelingListDomainModel
+import com.example.autos.data.local.asDomainModel
+import com.example.autos.data.local.asDomainAuto
 import com.example.autos.domain.DomainCoche
 import com.example.autos.domain.DomainRefueling
 import com.example.autos.repository.AutosRepository
+import com.example.autos.util.Limits
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.FileNotFoundException
@@ -29,6 +30,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.runBlocking
@@ -41,18 +43,25 @@ private const val REPOSTAJES = "DbRefueling"
 private const val GASTOS = "DbGasto"
 private const val ITEMS = "DbItem"
 
-class MainActivityViewModel(val app: Application, val repository: AutosRepository): ViewModel() {
 
+class MainActivityViewModel(val app: Application, private val repository: AutosRepository): ViewModel() {
 
-//    var carId = mutableStateOf(autoId)
-    var firstStart = mutableStateOf(false)
+    val firstStart = mutableStateOf(false)
+    private val restored = mutableStateOf(false)
+    val status: MutableState<AutosStatus> = mutableStateOf(AutosStatus.DONE)
 
-    var auto: MutableState<DomainCoche?> = mutableStateOf(null)
+    val auto: MutableState<DomainCoche?> = mutableStateOf(null)
+
     var lastRefueling: MutableState<DomainRefueling?> = mutableStateOf(null)
+    var lastOilChangeFrom: MutableState<Int> = mutableStateOf(0)
+    var lastAirFilterChangeFrom: MutableState<Int> = mutableStateOf(0)
+    var lastFrontTiresChangeFrom: MutableState<Int> = mutableStateOf(0)
+    var lastBackTiresChangeFrom: MutableState<Int> = mutableStateOf(0)
+    var lastKms: MutableState<Int> = mutableStateOf(0)
 
     lateinit var cars: List<DbAuto>
-    lateinit var refuelings: List<DbRefueling>
-    lateinit var gastos: List<DbGasto>
+    private lateinit var refuelings: List<DbRefueling>
+    private lateinit var gastos: List<DbGasto>
     lateinit var items: List<DbItem>
 
     val datosRecibidos = MutableLiveData(false)
@@ -60,28 +69,25 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
     var restoredVehicles = 0
 
     init {
-        Log.d(TAG,"init viewModel autoId: ${autoId}")
-//        getActualAutoId()
         if (autoId != -1) {
             viewModelScope.launch {
-                auto.value = repository.getAuto(autoId).asLiveDataDomainAuto()
-                lastRefueling.value = repository.getLastRefueling(autoId)?.asRefuelingListDomainModel()
+                auto.value = repository.getAuto(autoId).asDomainAuto()
+                lastKms.value = auto.value!!.actualKms
+                lastRefueling.value = repository.getLastRefueling(autoId)?.asDomainModel()
+
+                setLastSpareChangeFrom()
             }
         } else {
             firstStart.value = true
         }
     }
 
-//    fun getActualAutoId() {
-//        carId.value = repository.getActualAutoId()
-//    }
-
     fun refreshData() {
-//        Log.d(TAG,"refresh data autoId: ${autoId.value}")
         viewModelScope.launch {
-            // necesario copiar para que el estado note el cambio de un solo atributo (actualKms por refueling)
-            // se pasan todos los atributos para el caso de que cambie el auto
-            val (id, marca, modelo, matricula, year, initKms, actualKms, buyDate) = repository.getAuto(autoId).asLiveDataDomainAuto()
+            // necesario copiar para que el estado note el cambio de un solo atributo (actualKms por refueling o gasto)
+            // se pasan todos los atributos para el caso de que sea cambio de auto
+            val (id, marca, modelo, matricula, year, initKms, actualKms, buyDate) = repository.getAuto(autoId).asDomainAuto()
+
             if (auto.value != null) {
                 auto.value = auto.value!!.copy(
                     id = id,
@@ -95,17 +101,61 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
                 )
             } else {
                 // para el caso de restauracion desde archivo
-                auto.value = repository.getAuto(autoId).asLiveDataDomainAuto()
+                auto.value = DomainCoche(
+                    id = id,
+                    marca = marca,
+                    modelo = modelo,
+                    matricula = matricula,
+                    year = year,
+                    initKms = initKms,
+                    actualKms = actualKms,
+                    buyDate = buyDate
+                )
             }
-            lastRefueling.value = repository.getLastRefueling(autoId)?.asRefuelingListDomainModel()
+
+            lastRefueling.value = repository.getLastRefueling(autoId)?.asDomainModel()
+            lastKms.value = actualKms
+            setLastSpareChangeFrom()
         }
-
-
     }
 
-    fun getData() = runBlocking {
+    private suspend fun setLastSpareChangeFrom() {
+        lastOilChangeFrom.value = repository.getLastSpareChange(autoId, app.getString(R.string.search_oil)).let {
+            if (it != null){
+                lastKms.value - it
+            } else {
+                lastKms.value % Limits.OIL.highLimit
+            }
+        }
+//        Log.d(TAG,"refresh lastOilChangeFrom: ${lastOilChangeFrom.value}")
+        lastAirFilterChangeFrom.value = repository.getLastSpareChange(autoId, app.getString(R.string.search_air_filter)).let {
+            if (it != null){
+                lastKms.value - it
+            } else {
+                lastKms.value % Limits.AIR.highLimit
+            }
+        }
+//        Log.d(TAG,"refresh lastAirChange: ${lastAirFilterChangeFrom.value}")
+        lastFrontTiresChangeFrom.value = repository.getLastSpareChange(autoId, app.getString(R.string.search_tire_front)).let {
+            if (it != null){
+                lastKms.value - it
+            } else {
+                lastKms.value % Limits.TIRES.highLimit
+            }
+        }
+//        Log.d(TAG,"refresh lastFrontTiresChange: ${lastFrontTiresChangeFrom.value}")
+        lastBackTiresChangeFrom.value = repository.getLastSpareChange(autoId, app.getString(R.string.search_tire_back)).let {
+            if (it != null){
+                lastKms.value - it
+            } else {
+                lastKms.value % Limits.TIRES.highLimit
+            }
+        }
+//        Log.d(TAG,"refresh lastBackTiresChange: ${lastBackTiresChangeFrom.value}")
+    }
+
+    fun getDataForBackup() = runBlocking {
         val success = retrieveDataAsync()
-//        Log.d(TAG,"deferred get data: $success")
         datosRecibidos.value = success
     }
 
@@ -114,33 +164,31 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
         val deferredRefuels = async { refuelings = repository.getAllRepostajes() }
         val deferredGastos = async { gastos = repository.getAllGastos() }
         val deferredItems = async { items = repository.getAllItems() }
+
         deferredCars.await()
-//        Log.d(TAG,"deferredCars: $deferredCars")
         deferredRefuels.await()
-//        Log.d(TAG,"deferredRefuels: $deferredRefuels")
         deferredGastos.await()
         deferredItems.await()
+
         cars.isNotEmpty() /*&& refuelings.isNotEmpty()*/
     }
 
 
     fun editFile(uri: Uri): Boolean{
-//        Log.d(TAG,"editFile uri: $uri")
 
-//        var jsonString = """{"Autos":"""
         var jsonString = """{"$AUTOS":"""
         jsonString = jsonString.plus(dataToJson(cars as List<Any>))
-//        jsonString = jsonString.plus(""","Refueling":""")
+
         jsonString = jsonString.plus(""","$REPOSTAJES":""")
         jsonString = jsonString.plus(dataToJson(refuelings as List<Any>))
-//        jsonString = jsonString.plus(""","Gastos":""")
+
         jsonString = jsonString.plus(""","$GASTOS":""")
         jsonString = jsonString.plus(dataToJson(gastos as List<Any>))
-//        jsonString = jsonString.plus(""","Items":""")
+
         jsonString = jsonString.plus(""","$ITEMS":""")
         jsonString = jsonString.plus(dataToJson(items as List<Any>))
-        jsonString = jsonString.plus("}")
 
+        jsonString = jsonString.plus("}")
 
         val contentResolver = app.contentResolver
 
@@ -166,8 +214,9 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
         return gson.toJsonTree(data).toString()
     }
 
-    fun rebuildData(uri: Uri): Boolean {
-        var success = false
+    suspend fun rebuildDataAsync(uri: Uri): Boolean {
+        status.value = AutosStatus.LOADING
+        var finished = false
         var read = ""
 
         val contentResolver = app.contentResolver
@@ -184,33 +233,31 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
 
             val jsonAutos = jsonObject.getJSONArray(AUTOS)
             val numAutos = jsonAutos.length()
-//            Log.d(TAG, "numAutos: $numAutos")
             val jsonRepos = jsonObject.getJSONArray(REPOSTAJES)
             val numRepos = jsonRepos.length()
-//            Log.d(TAG, "numRepos: $numRepos")
             val jsonGastos = jsonObject.getJSONArray(GASTOS)
             val numGastos = jsonGastos.length()
-//            Log.d(TAG, "numGastos: $numGastos")
             val jsonItems = jsonObject.getJSONArray(ITEMS)
             val numItems = jsonItems.length()
-//            Log.d(TAG, "numItems: $numItems")
+
+            val deferredRestore: Deferred<Boolean>
 
             // si es el primer arranque no hay datos en la BD, por lo que se mantienen los Id de los elementos
             if (firstStart.value) {
-                viewModelScope.launch {
+                deferredRestore = viewModelScope.async {
                     var latestId = 1
                     var latestFecha = ""
                     for (i in 0 until numAutos) {
                         val auto = gson.fromJson(jsonAutos.getString(i), DbAuto::class.java)
-                        repository.insertAuto(auto)
-                        // se busca el ultimo auto dado registrado
+                        val id = repository.insertAuto(auto).toInt()
+                        if (id != -1)   restoredVehicles ++
+
+                        // se busca el ultimo auto registrado
                         if (auto.buyDate > latestFecha) {
                             latestId = auto.id
                             latestFecha = auto.buyDate
                         }
-//                        Log.d(TAG,"latest auto: $latestFecha")
                     }
-                    repository.setActualAutoId(latestId)
 
                     for (i in 0 until numRepos) {
                         val repo = gson.fromJson(jsonRepos.getString(i), DbRefueling::class.java)
@@ -226,6 +273,16 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
                         val item = gson.fromJson(jsonItems.getString(i), DbItem::class.java)
                         repository.insertItem(item)
                     }
+
+                    status.value = AutosStatus.DONE
+
+                    if (restoredVehicles > 0) {
+                        firstStart.value = false
+                        restored.value = true
+                        repository.setActualAutoId(latestId)
+                        return@async true
+                    }
+                    return@async false
                 }
             } else {
                 // si ya hay datos en la BD, es necesario reasignar el Id de los autos (y sus repostajes y gastos) con nuevos Id
@@ -248,20 +305,24 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
                     items = items.plus(item)
                 }
 
-                viewModelScope.launch {
+                deferredRestore = viewModelScope.async {
                     for (i in 0 until numAutos) {
                         val auto = gson.fromJson(jsonAutos.getString(i), DbAuto::class.java)
                         // insercion y registro de los Id viejos y nuevos
                         val oldId = auto.id
                         auto.id = 0
                         val newId = repository.insertAuto(auto).toInt()
-                        repos.forEach {
-                            it.refuelId = 0
-                            if (it.cocheId == oldId)    it.cocheId = newId
-                        }
-                        gastos.forEach {
-                            it.gastoId = 0
-                            if (it.autoId == oldId)     it.autoId = newId
+                        if ( newId != -1 ) {
+                            restoredVehicles++
+
+                            repos.forEach {
+                                it.refuelId = 0
+                                if (it.cocheId == oldId) it.cocheId = newId
+                            }
+                            gastos.forEach {
+                                it.gastoId = 0
+                                if (it.autoId == oldId) it.autoId = newId
+                            }
                         }
                     }
 
@@ -277,18 +338,25 @@ class MainActivityViewModel(val app: Application, val repository: AutosRepositor
                         }
                     }
                     items.forEach { repository.insertItem(it) }
+
+                    status.value = AutosStatus.DONE
+
+                    if (restoredVehicles > 0) {
+                        firstStart.value = false
+                        restored.value = true
+                        return@async true
+                    }
+                    return@async false
                 }
             }
-            restoredVehicles = numAutos
-            if (restoredVehicles > 0) {
-                firstStart.value = false
-                success = true
-            }
+            finished = deferredRestore.await()
+
         } catch (e: Exception){
             Log.d(TAG,"Error de recuperacion: $e")
             Toast.makeText(app, "${app.getText(R.string.error_restore)} $e", Toast.LENGTH_LONG).show()
+            status.value = AutosStatus.ERROR
         }
-        return success
+        return finished
     }
 
 

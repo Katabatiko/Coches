@@ -1,5 +1,6 @@
 package com.example.autos.ui.refueling
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material3.Button
@@ -18,9 +23,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,7 +38,9 @@ import com.example.autos.domain.DomainRefueling
 import com.example.autos.ui.composables.DatePickerView
 import com.example.autos.ui.composables.DatoNumericoInput
 import com.example.autos.util.numeroValido
+import kotlinx.coroutines.launch
 
+private const val TAG = "xxRefs"
 
 @Composable
 fun RefuelingDate(
@@ -92,7 +102,6 @@ fun Lleno(
                 .fillMaxWidth(0.35f)
                 .align(Alignment.CenterVertically)
         )
-//            Spacer(modifier = Modifier.width(32.dp))
         Checkbox(
             checked = lleno,
             onCheckedChange = onDataChange
@@ -101,6 +110,7 @@ fun Lleno(
 
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RefuelingScreen(
     viewModel: RefuelingViewModel,
@@ -117,19 +127,23 @@ fun RefuelingScreen(
 
     fun areAllInputs(): Boolean {
         if (!numeroValido(kms.value, NumberType.INT)) return false
-//        if (!numeroValido(kms.value ?: "", NumberType.INT, lastRefueling?.kms ?: viewModel.initKms)) return false
         if (!numeroValido(precio.value, NumberType.FLOAT3)) return false
         if (!numeroValido(costo.value, NumberType.FLOAT2)) return false
         if (!numeroValido(litros.value, NumberType.FLOAT2)) return false
         return true
     }
 
+    val state = rememberScrollState()
+
     Column (
         modifier = Modifier
             .fillMaxSize()
             .padding(top = 24.dp, start = 8.dp, end = 8.dp)
+            .verticalScroll(state)
     ){
         val focusManager = LocalFocusManager.current
+        val bringIntoViewRequester = remember { BringIntoViewRequester() }
+        val coroutineScope = rememberCoroutineScope()
 
         RefuelingDate(
             date = actualDate.value,
@@ -142,7 +156,7 @@ fun RefuelingScreen(
             focusManager = focusManager,
             focusRequest = true,
             value = kms.value,
-            lastValue = (lastRefueling?.kms ?: viewModel.initKms).toString(),
+            lastValue = (lastRefueling?.kms ?: viewModel.lastKms.value).toString(),
             onDataChange = {
                 viewModel.actualKms.value = it
             }
@@ -175,6 +189,15 @@ fun RefuelingScreen(
         DatoNumericoInput(
             label = stringResource(id = R.string.litros),
             numberType = NumberType.FLOAT2,
+            modifier = Modifier
+                .bringIntoViewRequester(bringIntoViewRequester)
+                .onFocusEvent { focusState ->
+                    if (focusState.isFocused) {
+                        coroutineScope.launch {
+                            bringIntoViewRequester.bringIntoView()
+                        }
+                    }
+                },
             focusManager = focusManager,
             value = litros.value,
             lastValue = (lastRefueling?.litros ?: 34.56f).toString(),
@@ -189,10 +212,7 @@ fun RefuelingScreen(
         )
         Spacer(modifier = Modifier.height(8.dp))
         Button(
-            onClick = {
-                viewModel.saveRefueling()
-                onNewRefueling()
-            },
+            onClick = onNewRefueling,
             modifier = Modifier.align(Alignment.CenterHorizontally),
             enabled = areAllInputs()
         ) {

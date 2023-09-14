@@ -2,6 +2,7 @@ package com.example.autos.data.local
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.map
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.example.autos.domain.DomainCoche
@@ -22,7 +23,7 @@ data class DbAuto(
     val buyDate: String
 )
 
-fun DbAuto.asLiveDataDomainAuto(): DomainCoche{
+fun DbAuto.asDomainAuto(): DomainCoche{
     return DomainCoche(
         id = this.id,
         marca = this.marca,
@@ -78,11 +79,13 @@ data class DbRefueling(
     val litros: Float,
     val eurosLitro: Float,
     val euros: Float,
-    val lleno: Boolean
+    val lleno: Boolean,
+    @ColumnInfo(name = "recorrido", defaultValue = "0")
+    var recorrido: Int = 0
 )
 
-fun DbRefueling.asRefuelingListDomainModel(): DomainRefueling {
-    return DomainRefueling(
+fun DbRefueling.asDomainModel(): DomainRefueling {
+    return  DomainRefueling(
         refuelId = this.refuelId,
         cocheId = this.cocheId,
         fecha = this.fecha,
@@ -90,26 +93,9 @@ fun DbRefueling.asRefuelingListDomainModel(): DomainRefueling {
         litros = this.litros,
         eurosLitro = this.eurosLitro,
         euros = this.euros,
-        lleno = this.lleno
+        lleno = this.lleno,
+        recorrido = this.recorrido
     )
-}
-
-fun LiveData<DbRefueling?>.asLiveDataDomainModel(): LiveData<DomainRefueling?> {
-    return map {
-        if (it != null) {
-            DomainRefueling(
-                refuelId = it.refuelId,
-                cocheId = it.cocheId,
-                fecha = it.fecha,
-                kms = it.kms,
-                litros = it.litros,
-                eurosLitro = it.eurosLitro,
-                euros = it.euros,
-                lleno = it.lleno
-            )
-        }
-        else null
-    }
 }
 
 fun LiveData<List<DbRefueling>>.asLiveDataListDomainModel(): LiveData<List<DomainRefueling>> {
@@ -123,13 +109,14 @@ fun LiveData<List<DbRefueling>>.asLiveDataListDomainModel(): LiveData<List<Domai
                 litros = it.litros,
                 eurosLitro = it.eurosLitro,
                 euros = it.euros,
-                lleno = it.lleno
+                lleno = it.lleno,
+                recorrido = it.recorrido
             )
         }
     }
 }
 
-fun List<DbRefueling>.asRefuelingListDomainModel(): List<DomainRefueling> {
+fun List<DbRefueling>.asRefuelingDomainModel(): List<DomainRefueling> {
     return map {
         DomainRefueling(
             refuelId = it.refuelId,
@@ -139,10 +126,16 @@ fun List<DbRefueling>.asRefuelingListDomainModel(): List<DomainRefueling> {
             litros = it.litros,
             eurosLitro = it.eurosLitro,
             euros = it.euros,
-            lleno = it.lleno
+            lleno = it.lleno,
+            recorrido = it.recorrido
         )
     }
 }
+
+data class DateRange(
+    val latest: String?,
+    val oldest: String?
+)
 
 @Entity
 data class DbGasto (
@@ -155,7 +148,7 @@ data class DbGasto (
     val importe: Float
 )
 
-fun DbGasto.asGastoListDomainModel(): DomainGasto {
+fun DbGasto.asGastoDomainModel(): DomainGasto {
     return DomainGasto(
         gastoId = this.gastoId,
         fecha = this.fecha,
@@ -167,13 +160,27 @@ fun DbGasto.asGastoListDomainModel(): DomainGasto {
     )
 }
 
+fun List<DbGasto>.asGastoListDomainModel(): List<DomainGasto> {
+    return map {
+        DomainGasto(
+            gastoId = it.gastoId,
+            fecha = it.fecha,
+            concepto = it.concepto,
+            autoId = it.autoId,
+            kms = it.kms,
+            importe = it.importe,
+            items = listOf()
+        )
+    }
+}
+
 @Entity
 data class DbItem (
     @PrimaryKey(autoGenerate = true)
     var itemId: Int = 0,
     var gastoId: Int,
     val descripcion: String,
-    val marca: String?,
+    val detalle: String?,
     val precio: Float,
     val cantidad: Int
 )
@@ -183,7 +190,7 @@ fun DbItem.asDomainModel(): DomainItem {
         itemId = this.itemId,
         gastoId = this.gastoId,
         descripcion = this.descripcion,
-        marca = this.marca,
+        detalle = this.detalle,
         precio = this.precio,
         cantidad = this.cantidad
     )

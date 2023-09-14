@@ -6,16 +6,17 @@
     <string name="nav_header_subtitle">Libro de taller</string>
     <string name="nav_header_desc">Cabecera de cajón de navegación</string>
     <string name="action_settings">Ajustes</string>
-    <string name="preference_file_key">autosPreferences</string>
+    <string name="preference_file_key">preferences</string>
 
     <string name="menu_home">Vehículo</string>
     <string name="matricula">Matrícula:</string>
-    <string name="fecha_matriculacion">Fecha matriculación:</string>
+    <string name="fecha_matriculacion">Matriculación:</string>
     <string name="kms_iniciales">Kms iniciales:</string>
-    <string name="recorrido">Recorrido:</string>
+    <string name="recorrido">"Recorrido: "</string>
     <string name="parcial">Parcial:</string>
     <string name="fecha_compra">Fecha de compra:</string>
     <string name="kms_recorridos">Kms recorridos:</string>
+    <string name="add_cost">Añadir gasto</string>
 
     <string name="vehicle">Vehículo</string>
     <string name="vehicles">Vehículos</string>
@@ -30,18 +31,20 @@
 
     <string name="repostaje">Repostaje</string>
     <string name="new_repostaje">Nuevo repostaje</string>
-    <string name="add_cost">Añadir gasto</string>
-    <string name="fecha">Fecha: </string>
+    <string name="saved_repostaje">Repostaje guardado</string>
+    <string name="error_saving_repostaje">No se pudo guardar el repostaje</string>
+    <string name="fecha">"Fecha: "</string>
     <string name="set">Establecer</string>
     <string name="date_adjust">Ajustar fecha</string>
     <string name="kilometros">Kilómetros:</string>
-    <string name="kms">Kms: </string>
-    <string name="kms_">  kms.</string>
+    <string name="kms">"Kms: "</string>
+    <string name="kms_">"  kms."</string>
     <string name="total_kms">Total kms:</string>
-    <string name="litros">Litros: </string>
-    <string name="euros_litro">€/l: </string>
+    <string name="litros">"Litros: "</string>
+    <string name="l">" l."</string>
+    <string name="euros_litro">"€/l: "</string>
     <string name="euros">Euros: </string>
-    <string name="Eu">  €</string>
+    <string name="Eu">"  €"</string>
     <string name="save">Guardar</string>
     <string name="full">Lleno</string>
 
@@ -57,7 +60,7 @@
     <string name="descripcion">Descripción</string>
     <string name="detalles">Detalles</string>
     <string name="precio_unidad">€/Unidad</string>
-    <string name="euros_u">€/U: </string>
+    <string name="euros_u">"€/U: "</string>
     <string name="ivaDel">iva %d\%</string>
     <string name="masIva">+ iva</string>
     <string name="borrar">Eliminar artículo</string>
@@ -66,15 +69,42 @@
     <string name="finalizar">Finalizar</string>
     <string name="buscar">Buscar</string>
     <string name="last_time">Último cambio de %s hace %s kms.</string>
+    <string name="filter">Filtro</string>
+    <string name="front">Delanteros</string>
+    <string name="back">Traseros</string>
+    <string name="oil">Aceite</string>
+    <string name="saved_gasto">Gasto guardado</string>
+    <string name="error_saving_gasto">No se pudo guardar el gasto</string>
+
+    <string name="suggestion_aceite">Cambio aceite motor</string>
+    <string name="suggestion_aire">Cambio filtro de aire</string>
+    <string name="suggestion_ruedas_del">Cambio neumáticos delanteros</string>
+    <string name="suggestion_ruedas_tras">Cambio neumáticos traseros</string>
+    <string name="suggestion_revision">Revisión periódica</string>
+
+    <string name="search_air_filter">%cambio%filtro%aire%</string>
+    <string name="search_oil">%cambio%aceite%motor%</string>
+    <string name="search_tire_front">%cambio%neumático%del%</string>
+    <string name="search_tire_back">%cambio%neumático%tras%</string>
 
     <string name="statistics">Estadísticas</string>
     <string name="consumo_medio">Consumo medio:</string>
     <string name="total_litros">Total litros:</string>
-    <string name="gasto_petrol_total">Gasto Combustible:</string>
-    <string name="total_mantenimiento">Mantenimiento:</string>
+    <string name="gasto_petrol_total">"Gasto Combustible: "</string>
+    <string name="total_mantenimiento">"Mantenimiento: "</string>
+    <string name="precios">Precios</string>
     <string name="precio_max">Precio máximo:</string>
     <string name="precio_min">Precio mínimo:</string>
     <string name="totales">Totales</string>
+    <string name="parciales">Parciales</string>
+    <string name="init">Del:</string>
+    <string name="end">al:</string>
+    <string name="consumo">Consumo:</string>
+    <string name="media">Media:</string>
+    <string name="petrol">Combustible</string>
+    <string name="front_tires">Neumáticos delanteros</string>
+    <string name="back_tires">Neumáticos traseros</string>
+    <string name="dia_mes_template">" el  %s  de "</string>
 
     <string name="error_faltan_datos">¡Faltan datos!</string>
     <string name="no_registers">Sin registros</string>
@@ -86,15 +116,31 @@
     <string name="backup">Respaldo de datos</string>
     <string name="restore">Recuperar datos</string>
     <string name="respaldo">Respaldo</string>
-    <string name="error_restore">El archivo no es válido: </string>
+    <string name="error_restore">"El archivo no es válido: "</string>
     <string name="restore_dialog_msg">¿Restaurar datos de vehículos desde archivo?</string>
     <string name="saved_cars">%d vehículos guardados</string>
     <string name="restored_cars">%d vehículos recuperados</string>
-    <string name="saving_error">Hubo un error y no se pudo guardar los datos: </string>
+    <string name="error_restoring">No se pudieron restaurar los datos</string>
+    <string name="saving_error">"Hubo un error y no se pudo guardar los datos: "</string>
     <string name="retrieving_error">No se pudo preparar los datos.</string>
 
     <string name="open">Abierto</string>
     <string name="close">Cerrado</string>
     <string name="mas">Más</string>
     <string name="menos">Menos</string>
+
+    <string-array name="meses">
+       <item>enero</item>
+       <item>febrero</item>
+       <item>marzo</item>
+       <item>abril</item>
+       <item>mayo</item>
+       <item>junio</item>
+       <item>julio</item>
+       <item>agosto</item>
+       <item>septiembre</item>
+       <item>octubre</item>
+       <item>noviembre</item>
+       <item>diciembre</item>
+    </string-array>
 </resources>

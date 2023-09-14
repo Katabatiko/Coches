@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,21 +47,29 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import com.example.autos.domain.DomainRefueling
 import com.example.autos.ui.composables.RestoreDialog
 import com.example.autos.ui.estadisticas.StatisticsScreen
 import com.example.autos.ui.estadisticas.StatisticsViewModel
@@ -86,12 +95,11 @@ enum class NumberType { INT, FLOAT2, FLOAT3}
 
 private const val FILE_NAME = "AutosDataBackup.json"
 private const val MIME_TYPE = "application/json"
-
 const val IVA = 21
 
-private const val TAG = "xxMa"
-
 var autoId = -1
+
+private const val TAG = "xxMa"
 
 class MainActivity : ComponentActivity(),
         OnSharedPreferenceChangeListener
@@ -105,12 +113,19 @@ class MainActivity : ComponentActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        preferences = getSharedPreferences("preferences",Context.MODE_PRIVATE)
+        preferences = getSharedPreferences(getString(R.string.preference_file_key),Context.MODE_PRIVATE)
         preferences.registerOnSharedPreferenceChangeListener(this)
         autoId = preferences.getInt("auto_id", -1)
 
         viewModel = ViewModelProvider(this, MainActivityViewModel.Factory)[MainActivityViewModel::class.java]
 
+        onBackPressedDispatcher.addCallback(this, object: OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (!viewModel.firstStart.value) {
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
 
         setContent {
             AutosTheme {
@@ -124,13 +139,6 @@ class MainActivity : ComponentActivity(),
         preferences.unregisterOnSharedPreferenceChangeListener(this)
     }
 
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (!viewModel.firstStart.value) {
-            super.onBackPressed()
-        }
-    }
-
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences?, key: String?) {
         if (key == "auto_id"){
@@ -139,9 +147,8 @@ class MainActivity : ComponentActivity(),
                 if (actualAutoId != -1){
 //                    Log.d(TAG,"preferences change autoId: $actualAutoId")
                     autoId = actualAutoId
-                    Log.d(TAG,"new auto Id: $autoId")
-//                    viewModel.getActualAutoId()
                     viewModel.refreshData()
+                    viewModel.firstStart.value = false
                 }
 
             }
@@ -158,25 +165,24 @@ fun Main(
     viewModel: MainActivityViewModel = viewModel()
 ) {
     val appBarTitle = rememberSaveable { mutableStateOf("Autos") }
-
-    val (auto, _) = rememberSaveable { viewModel.auto }
-
-    val (lastRefueling, _) = rememberSaveable { viewModel.lastRefueling }
-
+//                         0      1         2           3           4           5               6           7
     val routes = listOf("home","newCar","vehiculos","refueling","historico","statistics","mantenimiento","newGasto")
     val selectedRoute = rememberSaveable { mutableStateOf(routes[0]) }
+
+    val auto = rememberSaveable {  viewModel.auto  }
+    val (lastRefueling, _) = rememberSaveable { viewModel.lastRefueling }
 
     val restoreFromBackUpFile = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
         onResult = {
             if (it != null) {
-                if (viewModel.rebuildData(it)){
-                    val msg = context.getString(R.string.restored_cars).format(viewModel.restoredVehicles)
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                    navController.navigate("home")
-                    selectedRoute.value = routes[0]
-//                    Log.d(TAG,"going to vehiculos")
-//                    navController.navigate("vehiculos")
+                viewModel.viewModelScope.launch {
+                    if ( viewModel.rebuildDataAsync(it) ) {
+                        val msg = context.getString(R.string.restored_cars).format(viewModel.restoredVehicles)
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    } else {
+                        Toast.makeText(context, context.getString(R.string.error_restoring), Toast.LENGTH_LONG).show()
+                    }
                 }
             }
         }
@@ -185,7 +191,6 @@ fun Main(
     val backupToFile = rememberLauncherForActivityResult(
         contract = CreateFileContract(),
         onResult = { uri ->
-
             if (uri != null) {
                 val ok = viewModel.editFile(uri)
                 if (ok) {
@@ -233,198 +238,244 @@ fun Main(
                 )
             }
         ) {
-                Surface {
-                    ModalNavigationDrawer(
-                        drawerState = drawerState,
-                        drawerContent = {
-                            ModalDrawerSheet {
-                                val lifecycleOwner = LocalLifecycleOwner.current
-                                Column(Modifier.fillMaxWidth(0.55f)) {
-                                    DrawerHeader()
-                                    DrawerBody(
-                                        firstStart = viewModel.firstStart.value,
-                                        navController = navController,
-                                        selectedItem = selectedRoute,
-                                        onBackUp = {
-                                            viewModel.getData()
-                                            viewModel.datosRecibidos.observe(lifecycleOwner){
-                                                if (it) {
-                                                    backupToFile.launch(MIME_TYPE)
-                                                } else {
-                                                    Toast.makeText(context, R.string.retrieving_error, Toast.LENGTH_LONG).show()
-                                                }
+            Surface {
+                ModalNavigationDrawer(
+                    drawerState = drawerState,
+                    drawerContent = {
+                        ModalDrawerSheet {
+                            val lifecycleOwner = LocalLifecycleOwner.current
+                            Column(Modifier.fillMaxWidth(0.55f)) {
+                                DrawerHeader()
+                                DrawerBody(
+                                    firstStart = viewModel.firstStart.value,
+                                    navController = navController,
+                                    selectedItem = selectedRoute,
+                                    onBackUp = {
+                                        viewModel.getDataForBackup()
+                                        viewModel.datosRecibidos.observe(lifecycleOwner){
+                                            if (it) {
+                                                backupToFile.launch(MIME_TYPE)
+                                            } else {
+                                                Toast.makeText(context, R.string.retrieving_error, Toast.LENGTH_LONG).show()
                                             }
-                                        },
-                                        onRestore = { restoreFromBackUpFile.launch(MIME_TYPE) }
-                                    ) {
-                                        coroutineScope.launch {  drawerState.close()  }
-                                    }
+                                        }
+                                    },
+                                    onRestore = { restoreFromBackUpFile.launch(MIME_TYPE) }
+                                ) {
+                                    coroutineScope.launch {  drawerState.close()  }
                                 }
                             }
-                        },
-                        modifier = Modifier
-//                            .background(MaterialTheme.colorScheme.background)
-                            .padding(it)
-                            .wrapContentWidth()
-                    ) {
-                        NavHost(
-                            navController = navController,
-                            startDestination =  if (viewModel.firstStart.value) {
+                        }
+                    },
+                    modifier = Modifier
+                        .padding(it)
+                        .wrapContentWidth()
+                ) {
+                    NavHost(
+                        navController = navController,
+                        startDestination =  if (viewModel.firstStart.value) {
+                                                if (viewModel.status.value != AutosStatus.LOADING) {
                                                     RestoreDialog(
                                                         show = true,
-                                                        onAccept = { restoreFromBackUpFile.launch(MIME_TYPE) }
+                                                        onAccept = {
+                                                            restoreFromBackUpFile.launch(
+                                                                MIME_TYPE
+                                                            )
+                                                        }
                                                     )
-                                                    selectedRoute.value = routes[1]
-                                                    "newCar"
-                                                } else {
-                                                    "home"
                                                 }
+                                                "newCar"
+                                            } else {
+                                                "home/true"
+                                            }
+                    ) {
+                        composable(
+                            "home/{refreshAuto}",
+                            arguments = listOf( navArgument("refreshAuto") { type = NavType.BoolType} )
                         ) {
-                            composable("home") {
-                                selectedRoute.value = routes[0]
-                                HomeScreen(auto, navController)
-                                appBarTitle.value = stringResource(id = R.string.vehicle)
+                            selectedRoute.value = routes[0]
+                            val refreshAuto = it.arguments?.getBoolean("refreshAuto")
+//                            Log.d(TAG,"route home refreshAuto: $refreshAuto")
+                            if (refreshAuto == true){
+                                LaunchedEffect(Unit) {
+                                    viewModel.refreshData()
+                                }
                             }
-                            composable("newCar") {
-                                selectedRoute.value = routes[1]
-                                val newCarViewModel: NewCarViewModel = viewModel(factory = NewCarViewModel.Factory)
-                                NewAutoScreen(
-                                    newCarViewModel,
-                                    navController
-                                )
-                                appBarTitle.value = stringResource(id = R.string.new_car)
+
+                            val actualOilData = rememberSaveable { viewModel.lastOilChangeFrom }
+                            val actualAirData = rememberSaveable { viewModel.lastAirFilterChangeFrom }
+                            val actualFrontTireData = rememberSaveable { viewModel.lastFrontTiresChangeFrom }
+                            val actualBackTireData = rememberSaveable { viewModel.lastBackTiresChangeFrom }
+
+                            HomeScreen(
+                                auto,
+                                actualOilData,
+                                actualAirData,
+                                actualFrontTireData,
+                                actualBackTireData,
+                                navController
+                            )
+                            appBarTitle.value = stringResource(id = R.string.vehicle)
+                        }
+
+                        composable("newCar") {
+                            selectedRoute.value = routes[1]
+                            val newCarViewModel: NewCarViewModel =
+                                viewModel(factory = NewCarViewModel.Factory)
+                            NewAutoScreen(
+                                newCarViewModel,
+                                viewModel.status,
+                                onNewAuto = {
+                                    newCarViewModel.saveAuto()
+                                    navController.navigate("home/true") {
+                                        // si cambia el coche se elimina el stack
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            )
+                            appBarTitle.value = stringResource(id = R.string.new_car)
+                        }
+                        composable("vehiculos") {
+                            selectedRoute.value = routes[2]
+                            val vehiculosViewModel: VehiculosViewModel = viewModel(factory = VehiculosViewModel.Factory)
+                            VehiclesScreen(
+                                list = vehiculosViewModel.vehicles.observeAsState(),
+                                goToNewCar = { navController.navigate("newCar") },
+                                setAutoId = { autoId ->
+                                    vehiculosViewModel.setAutoId(autoId)
+                                    navController.navigate("home/true") {
+                                        // si cambia el coche se elimina el stacK
+                                        popUpTo("home") { inclusive = true }
+                                    }
+                                }
+                            )
+                            appBarTitle.value = stringResource(id = R.string.vehicles)
+                        }
+
+                        composable("refueling") {
+                            selectedRoute.value = routes[3]
+                            val refuelingViewModel: RefuelingViewModel = viewModel(factory = RefuelingViewModel.Factory)
+                            refuelingViewModel.initKms = auto.value?.initKms ?: 0
+                            refuelingViewModel.lastRefuelKms = lastRefueling?.kms ?: auto.value!!.actualKms
+                            RefuelingScreen(
+                                viewModel = refuelingViewModel,
+                                lastRefueling = lastRefueling
+                            ) {
+                                viewModel.viewModelScope.launch {
+                                    if (refuelingViewModel.saveRefueling().await()){
+                                        Toast.makeText(context, context.getString(R.string.saved_repostaje), Toast.LENGTH_LONG).show()
+                                    } else {
+                                        Toast.makeText(context, context.getString(R.string.error_saving_repostaje), Toast.LENGTH_LONG).show()
+                                    }
+                                    navController.navigate("home/true")
+                                }
                             }
-                            composable("vehiculos") {
-                                selectedRoute.value = routes[2]
-                                val vehiculosViewModel: VehiculosViewModel = viewModel(factory = VehiculosViewModel.Factory)
-                                VehiclesScreen(
-                                    list = vehiculosViewModel.vehicles.observeAsState(),
-                                    goToNewCar = { navController.navigate("newCar") },
-                                    setAutoId = { autoId ->
-                                        vehiculosViewModel.setAutoId(autoId)
-                                        navController.navigate("home") {
-                                            // si cambia el coche se elimina el stacK
-                                            popUpTo("home")
+                            appBarTitle.value = stringResource(id = R.string.new_repostaje)
+                        }
+
+                        composable("historico") {
+                            selectedRoute.value = routes[4]
+                            val refuelingViewModel: RefuelingViewModel = viewModel(factory = RefuelingViewModel.Factory)
+                            val data: LazyPagingItems<DomainRefueling> = refuelingViewModel.pagingRefuels.collectAsLazyPagingItems()
+
+                            LaunchedEffect( Unit ){
+                                refuelingViewModel.initKms = auto.value?.initKms ?: 0
+                            }
+
+                            RepostajesScreen( list = data )
+
+                            appBarTitle.value = stringResource(id = R.string.historico)
+                        }
+
+                        composable("statistics") {
+                            selectedRoute.value = routes[5]
+                            val statisticsViewModel: StatisticsViewModel = viewModel(factory = StatisticsViewModel.Factory)
+                            StatisticsScreen(
+                                viewModel = statisticsViewModel,
+                                autoModelo = auto.value?.modelo ?: "",
+                                autoInitKms = auto.value?.initKms ?: 0,
+                                autoLastKms = auto.value?.actualKms ?: 0,
+                                lastRefuelingLitros = lastRefueling?.litros ?: 0f
+                            )
+                            appBarTitle.value = stringResource(id = R.string.statistics)
+                        }
+
+                        composable("newGasto") {
+                            gastosViewModel = viewModel(
+                                viewModelStoreOwner = LocalContext.current as ComponentActivity,
+                                factory = GastosViewModel.Factory
+                            )
+                            NewGastoScreen(
+                                viewModel = gastosViewModel,
+                                lastKms = viewModel.lastKms,
+                                onNewGasto = { navController.navigate("newItems") }
+                            )
+                            appBarTitle.value = stringResource(id = R.string.mantenimiento)
+                        }
+
+                        composable("newItems") {
+                            gastosViewModel = viewModel(
+                                viewModelStoreOwner = LocalContext.current as ComponentActivity,
+                                factory = GastosViewModel.Factory
+                            )
+                            NewItemsScreen(
+                                viewModel = gastosViewModel,
+                                navController = navController
+                            )
+                        }
+
+                        composable("gasto") {
+                            gastosViewModel = viewModel(
+                                viewModelStoreOwner = LocalContext.current as ComponentActivity,
+                                factory = GastosViewModel.Factory
+                            )
+
+                            GastoScreen(
+                                gasto = gastosViewModel.gasto!!,
+                                onSave = { save ->
+                                    if (save){
+                                        viewModel.viewModelScope.launch {
+                                            if (gastosViewModel.saveGastoAsync().await()) {
+                                                Toast.makeText(context, context.getString(R.string.saved_gasto), Toast.LENGTH_LONG).show()
+                                                navController.navigate("home/true") {
+                                                    popUpTo("home") { inclusive = true }
+                                                }
+                                                gastosViewModel.cleanGastoInputs()
+                                            } else {
+                                                Toast.makeText(context, context.getString(R.string.error_saving_gasto), Toast.LENGTH_LONG).show()
+                                            }
                                         }
+                                    } else {
+                                        navController.navigateUp()
                                     }
-                                )
-                                appBarTitle.value = stringResource(id = R.string.vehicles)
-                            }
-                            composable("refueling") {
-                                selectedRoute.value = routes[3]
-                                val refuelingViewModel: RefuelingViewModel = viewModel(factory = RefuelingViewModel.Factory)
-                                refuelingViewModel.initKms = auto?.initKms ?: 0
-                                RefuelingScreen(
-                                    viewModel = refuelingViewModel,
-                                    lastRefueling = lastRefueling,
-                                    onNewRefueling = {
-                                        viewModel.refreshData()
-                                        selectedRoute.value = routes[0]
-                                        navController.navigate("home")
-                                    }
-                                )
-                                appBarTitle.value = stringResource(id = R.string.new_repostaje)
-                            }
-                            composable("historico") {
-                                selectedRoute.value = routes[4]
-                                val refuelingViewModel: RefuelingViewModel = viewModel(factory = RefuelingViewModel.Factory)
-                                LaunchedEffect( Unit ){
-                                    refuelingViewModel.initKms = auto?.initKms ?: 0
-                                    refuelingViewModel.getRespostajes()
                                 }
+                            )
+                        }
 
-                                RepostajesScreen(
-                                    list = refuelingViewModel.repostajes.observeAsState(),
-                                    status = refuelingViewModel.status
-                                )
-                                appBarTitle.value = stringResource(id = R.string.historico)
-                            }
-                            composable("statistics") {
-                                selectedRoute.value = routes[5]
-                                val statisticsViewModel: StatisticsViewModel = viewModel(factory = StatisticsViewModel.Factory)
-                                StatisticsScreen(
-                                    viewModel = statisticsViewModel,
-                                    autoModelo = auto?.modelo ?: "",
-                                    autoInitKms = auto?.initKms ?: 0,
-                                    autoLastKms = auto?.actualKms ?: 0,
-                                    lastRefuelingLitros = lastRefueling?.litros ?: 0f
-                                )
-                                appBarTitle.value = stringResource(id = R.string.statistics)
-                            }
-                            composable("newGasto") {
-                                // para poder compartir la misma instancia de viewmodel pasar como propietario a la actividad
-                                gastosViewModel = viewModel(
-                                    viewModelStoreOwner = LocalContext.current as ComponentActivity,
-                                    factory = GastosViewModel.Factory
-                                )
-                                NewGastoScreen(
-                                    viewModel = gastosViewModel,
-                                    lastKms = lastRefueling?.kms ?: auto!!.initKms,
-                                    onNewGasto = { navController.navigate("newItems") }
-                                )
-                                appBarTitle.value = stringResource(id = R.string.mantenimiento)
-                            }
-                            composable("newItems") {
-//                                Log.d(TAG,"entrando composable newItems")
-                                // para poder compartir la misma instancia de viewmodel pasar como propietario a la actividad
-                                gastosViewModel = viewModel(
-                                    viewModelStoreOwner = LocalContext.current as ComponentActivity,
-                                    factory = GastosViewModel.Factory
-                                )
-                                NewItemsScreen(
-                                    viewModel = gastosViewModel,
-                                    navController = navController
-                                )
-//                                appBarTitle.value = stringResource(id = R.string.mantenimiento)
-                            }
-                            composable("gasto") {
-//                                Log.d(TAG,"entrando composable gasto")
-                                // para poder compartir la misma instancia de viewmodel pasar como propietario a la actividad
-                                gastosViewModel = viewModel(
-                                    viewModelStoreOwner = LocalContext.current as ComponentActivity,
-                                    factory = GastosViewModel.Factory
-                                )
-                                GastoScreen(
-                                    gasto = gastosViewModel.makeGasto(),
-                                    onSave = { save ->
-                                        if (save){
-                                            val result = gastosViewModel.saveGasto()
-                                            Toast.makeText(context, result, Toast.LENGTH_LONG).show()
-                                            navController.navigate("home")
-                                        } else {
-                                            navController.navigate("newItems") /*{
-                                                popUpTo("newItems") { inclusive = true }
-                                            }*/
-                                        }
-                                    }
-                                )
-//                                appBarTitle.value = stringResource(id = R.string.mantenimiento)
-                            }
-                            composable("mantenimiento") {
-                                selectedRoute.value = routes[6]
-//                                Log.d(TAG,"entrando composable mantenimiento")
-                                // para poder compartir la misma instancia de viewmodel pasar como propietario a la actividad
-                                gastosViewModel = viewModel(
-                                    viewModelStoreOwner = LocalContext.current as ComponentActivity,
-                                    factory = GastosViewModel.Factory
-                                )
+                        composable("mantenimiento") {
+                            selectedRoute.value = routes[6]
+                            // para poder compartir la misma instancia de viewmodel pasar como propietario a la actividad
+                            gastosViewModel = viewModel(
+                                viewModelStoreOwner = LocalContext.current as ComponentActivity,
+                                factory = GastosViewModel.Factory
+                            )
 
-                                LaunchedEffect( Unit ) {
-                                    gastosViewModel.getGastosByAuto(autoId)
-                                }
-
-                                MantenimientosScreen(
-                                    list = gastosViewModel.search.observeAsState(),
-                                    status = gastosViewModel.status,
-                                    lastKms = gastosViewModel.lastKms.observeAsState()
-                                ){
-                                    gastosViewModel.getSearch(it)
-                                }
-                                appBarTitle.value = stringResource(id = R.string.mantenimiento)
+                            LaunchedEffect( Unit ) {
+                                gastosViewModel.getGastosByAuto(autoId)
                             }
+
+                            MantenimientosScreen(
+                                list = gastosViewModel.search.observeAsState(),
+                                status = gastosViewModel.status,
+                                lastKms = viewModel.lastKms
+                            ){
+                                gastosViewModel.getSearch(it)
+                            }
+                            appBarTitle.value = stringResource(id = R.string.mantenimiento)
                         }
                     }
                 }
+            }
         }
     }
 }
@@ -435,7 +486,6 @@ fun DrawerHeader(){
     Column(
         modifier = Modifier
             .fillMaxWidth()
-//            .padding(vertical = 8.dp)
             .background(MaterialTheme.colorScheme.tertiary),
     ) {
         Icon(
@@ -469,8 +519,6 @@ fun DrawerBody(
     closeNavDrawer: () -> Unit
 ) {
     val scrollState = rememberScrollState()
-    //                       0      1         2           3           4           5               6           7
-//    val routes = listOf("home","newCar","vehiculos","refueling","historico","statistics","mantenimiento","newGasto")
 
     Column(
         Modifier
@@ -479,14 +527,19 @@ fun DrawerBody(
             .verticalScroll(scrollState)
     ) {
         NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.vehicle)) },
+            label = {Text(
+                        text = stringResource(id = R.string.vehicle),
+                        style = if (!firstStart) TextStyle.Default
+                                else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+                    )},
             selected = selectedItem.value == "home",
             onClick = {
-                closeNavDrawer()
-                if (!firstStart)
-                    navController.navigate(route = "home"){
+                if (!firstStart) {
+                    navController.navigate(route = "home/false") {
                         popUpTo("home")
                     }
+                    closeNavDrawer()
+                }
             },
             icon = { Icon(
                 painterResource(id = R.drawable.twotone_selected_car_24),
@@ -509,12 +562,16 @@ fun DrawerBody(
         )
 
         NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.vehicles)) },
+            label = { Text(
+                text = stringResource(id = R.string.vehicles),
+                style = if (!firstStart) TextStyle.Default
+                        else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+            ) },
             selected = selectedItem.value == "vehiculos",
             onClick = {
-                closeNavDrawer()
                 if (!firstStart) {
                     navController.navigate(route = "vehiculos")
+                    closeNavDrawer()
                 }
             },
             modifier = Modifier,
@@ -525,12 +582,16 @@ fun DrawerBody(
         )
 
         NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.new_repostaje)) },
+            label = { Text(
+                text = stringResource(id = R.string.new_repostaje),
+                style = if (!firstStart) TextStyle.Default
+                        else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+            ) },
             selected = selectedItem.value == "refueling",
             onClick = {
-                closeNavDrawer()
                 if (!firstStart) {
                     navController.navigate(route = "refueling")
+                    closeNavDrawer()
                 }
             },
             modifier = Modifier,
@@ -541,12 +602,16 @@ fun DrawerBody(
         )
 
         NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.historico)) },
+            label = { Text(
+                text = stringResource(id = R.string.historico),
+                style = if (!firstStart) TextStyle.Default
+                        else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+            ) },
             selected = selectedItem.value == "historico",
             onClick = {
-                closeNavDrawer()
                 if (!firstStart) {
                     navController.navigate(route = "historico")
+                    closeNavDrawer()
                 }
             },
             modifier = Modifier,
@@ -557,34 +622,42 @@ fun DrawerBody(
         )
 
         NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.statistics)) },
-            selected = selectedItem.value == "statistics",
-            onClick = {
-                closeNavDrawer()
-                if (!firstStart) {
-                    navController.navigate(route = "statistics")
-                }
-            },
-            modifier = Modifier,
-            icon = { Icon(
-                painterResource(id = R.drawable.twotone_data_exploration_24),
-                stringResource(id = R.string.statistics)
-            )}
-        )
-
-        NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.historico)) },
+            label = { Text(
+                text = stringResource(id = R.string.historico),
+                style = if (!firstStart) TextStyle.Default
+                        else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+            ) },
             selected = selectedItem.value == "mantenimiento",
             onClick = {
-                closeNavDrawer()
                 if (!firstStart) {
                     navController.navigate(route = "mantenimiento")
+                    closeNavDrawer()
                 }
             },
             modifier = Modifier,
             icon = { Icon(
                 painterResource(id = android.R.drawable.ic_menu_manage),
                 stringResource(id = R.string.historico)
+            )}
+        )
+
+        NavigationDrawerItem(
+            label = { Text(
+                text = stringResource(id = R.string.statistics),
+                style = if (!firstStart) TextStyle.Default
+                        else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+            ) },
+            selected = selectedItem.value == "statistics",
+            onClick = {
+                if (!firstStart) {
+                    navController.navigate(route = "statistics")
+                    closeNavDrawer()
+                }
+            },
+            modifier = Modifier,
+            icon = { Icon(
+                painterResource(id = R.drawable.twotone_data_exploration_24),
+                stringResource(id = R.string.statistics)
             )}
         )
         Divider(
@@ -600,12 +673,17 @@ fun DrawerBody(
         )
 
         NavigationDrawerItem(
-            label = { Text(text = stringResource(id = R.string.backup)) },
+            label = { Text(
+                text = stringResource(id = R.string.backup),
+                style = if (!firstStart) TextStyle.Default
+                        else TextStyle(color = Color.Unspecified.copy(alpha = 0.2f))
+            ) },
             selected = false,
             onClick = {
-                closeNavDrawer()
-                if (!firstStart)
+                if (!firstStart) {
+                    closeNavDrawer()
                     onBackUp()
+                }
             },
             modifier = Modifier,
             icon = { Icon(

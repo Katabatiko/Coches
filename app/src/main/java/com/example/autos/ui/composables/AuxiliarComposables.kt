@@ -5,11 +5,15 @@ import android.widget.Button
 import android.widget.DatePicker
 import android.widget.TextView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -24,6 +28,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,6 +39,9 @@ import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -49,13 +57,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.autos.NumberType
 import com.example.autos.R
+import com.example.autos.util.Limits
+import com.example.autos.util.localNumberFormat
 import com.example.autos.util.numeroValido
 import com.example.autos.util.standardizeDate
 import com.example.autos.util.textEmpty
 
 private const val TAG = "xxAuxC"
 
-//@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DatePickerView(
     head: String,
@@ -63,23 +72,15 @@ fun DatePickerView(
     fieldInput: (String) -> Unit,
     changeDate: (Boolean) -> Unit
 ) {
-//    val bringIntoViewRequester = remember { BringIntoViewRequester() }
-//    val coroutineScope = rememberCoroutineScope()
     AndroidView(
         factory = { context ->
             val view = LayoutInflater.from(context).inflate(R.layout.datepicker_layout, null, false)
 
             view
         },
-        modifier = modifier.background(color = MaterialTheme.colorScheme.surfaceVariant),
-//                        .bringIntoViewRequester(bringIntoViewRequester)
-//                        .onFocusEvent { focusState ->
-//                            if (focusState.isFocused) {
-//                                coroutineScope.launch {
-//                                    bringIntoViewRequester.bringIntoView()
-//                                }
-//                            }
-//                        }
+        modifier = modifier.background(
+            color = MaterialTheme.colorScheme.surfaceVariant
+        ),
     ) {
         val headTv = it.findViewById<TextView>(R.id.date_picker_head)
         headTv.text = head
@@ -149,10 +150,12 @@ fun DateInput(
 
 @Composable
 fun Dato(
+    modifier: Modifier = Modifier,
     value: String,
     label: String,
-    modifier: Modifier = Modifier,
-    labelModifier: Modifier = Modifier
+    valueAtEnd: Boolean = false,
+    labelModifier: Modifier = Modifier,
+    valueModifier: Modifier = Modifier
 ) {
     Row(modifier) {
         Text(
@@ -164,11 +167,11 @@ fun Dato(
         )
         Text(
             text = value,
-            modifier = Modifier
-                .padding(start = 2.dp)
-                .fillMaxWidth(),
-            maxLines = 1
-
+            modifier = valueModifier,
+            textAlign = if (valueAtEnd) TextAlign.End
+                        else TextAlign.Start,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -280,7 +283,7 @@ fun StringInput(
         isError = error.value,
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Words,
+            capitalization = KeyboardCapitalization.Sentences,
             imeAction = ImeAction.Next
         ),
         keyboardActions = KeyboardActions(
@@ -356,21 +359,105 @@ fun RestoreDialog(
     }
 }
 
+@Composable
+fun Notice(
+    modifier: Modifier = Modifier,
+    actualData: State<Int?> = mutableStateOf(0),
+    headText: String = "",
+    limits: Limits,
+    icon: Int = android.R.drawable.alert_light_frame
+) {
+    val backColor: Color
+    val textColor: Color
+    val borderColor: Color
+
+    when{
+        (actualData.value ?: 0) > limits.highLimit -> {
+            borderColor = MaterialTheme.colorScheme.onTertiaryContainer
+            backColor = colorResource(id = R.color.top_notice)
+            textColor = colorResource(id = R.color.on_top)
+        }
+        (actualData.value ?: 0) > limits.lowLimit -> {
+            borderColor = MaterialTheme.colorScheme.onTertiaryContainer
+            backColor = colorResource(id = R.color.bottom_notice)
+            textColor = colorResource(id = R.color.on_bottom)
+        }
+        else -> {
+            borderColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.15f)
+            backColor = colorResource(id = android.R.color.transparent)
+            textColor = colorResource(id = android.R.color.transparent)
+        }
+    }
+    Column(
+        modifier = modifier
+            .width(76.dp)
+            .heightIn(76.dp)
+            .background(
+                backColor,
+                RoundedCornerShape(10.dp)
+            )
+            .border(
+                4.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(10.dp)
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        if ((actualData.value ?: 0) > limits.lowLimit) {
+            Text(
+                text = headText,
+                modifier = Modifier.padding(start = 4.dp, top = 2.dp, end = 4.dp),
+                color = textColor,
+                fontWeight = FontWeight.Bold,
+                lineHeight = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = "Uso de ${limits.name} $actualData kms",
+                tint = textColor
+            )
+            Text(
+                text = "${localNumberFormat(actualData.value ?: 0)} ${stringResource(id = R.string.kms_)}",
+                modifier = Modifier.padding(start = 4.dp, bottom = 1.dp, end = 4.dp),
+                color = textColor,
+                fontSize = 11.sp,
+                textAlign = TextAlign.Center,
+                lineHeight = 10.sp,
+                minLines = 2
+            )
+        }
+    }
+}
+
 @Preview
 @Composable
-fun ShowRestoreDialog() {
-    RestoreDialog(
-        show = true,
-        onAccept = {}
+fun BadgePreview() {
+    val actualData = remember{ mutableStateOf(40500) }
+    Notice(
+        actualData = actualData,
+        headText = "Delanteras",
+        limits = Limits.TIRES,
+        icon = R.drawable.wheel,
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewDatePickerView(){
-    DatePickerView(
-        head = "Prueba de DatePickerView",
-        fieldInput = {},
-        changeDate = {}
-    )
-}
+//@Preview
+//@Composable
+//fun ShowRestoreDialog() {
+//    RestoreDialog(
+//        show = true,
+//        onAccept = {}
+//    )
+//}
+
+//@Preview(showBackground = true)
+//@Composable
+//fun PreviewDatePickerView(){
+//    DatePickerView(
+//        head = "Prueba de DatePickerView",
+//        fieldInput = {},
+//        changeDate = {}
+//    )
+//}

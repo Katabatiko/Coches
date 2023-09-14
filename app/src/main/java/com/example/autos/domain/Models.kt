@@ -1,12 +1,13 @@
 package com.example.autos.domain
 
 import android.os.Parcelable
-import com.example.autos.IVA
+import com.example.autos.data.local.CompoundPrice
 import com.example.autos.data.local.DbAuto
 import com.example.autos.data.local.DbGasto
 import com.example.autos.data.local.DbItem
 import kotlinx.parcelize.Parcelize
 
+//       AUTOS
 @Parcelize
 data class DomainCoche(
     val id: Int = 0,
@@ -32,6 +33,7 @@ fun DomainCoche.asDatabaseModel(): DbAuto {
     )
 }
 
+//      REPOSTAJES
 @Parcelize
 data class DomainRefueling(
     val refuelId: Int,
@@ -45,6 +47,26 @@ data class DomainRefueling(
     var recorrido: Int = 0
 ): Parcelable
 
+//      ESTADISTICAS
+data class AverageRefueling(
+    val initFecha: String,
+    val endFecha: String,
+    val kms: Int,
+    val consumo: Float
+)
+
+data class KmsByYear(
+    val kms: Int,
+    val year: String
+)
+
+data class PricesByYear(
+    val year: String,
+    val min: CompoundPrice,
+    val max: CompoundPrice
+)
+
+//      GASTOS
 //@Parcelize
 data class DomainGasto(
     val gastoId: Int = 0,
@@ -72,7 +94,7 @@ data class DomainItem(
     val itemId: Int = 0,
     var gastoId: Int,
     val descripcion: String,
-    val marca: String?,
+    val detalle: String?,
     var precio: Float,
     val cantidad: Int
 )
@@ -82,7 +104,7 @@ fun DomainItem.asDatabaseModel(): DbItem {
         itemId = this.itemId,
         gastoId = this.gastoId,
         descripcion = this.descripcion,
-        marca = this.marca,
+        detalle = this.detalle,
         precio = this.precio,
         cantidad = this.cantidad
     )

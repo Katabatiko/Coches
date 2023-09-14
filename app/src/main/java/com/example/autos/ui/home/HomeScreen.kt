@@ -1,11 +1,11 @@
 package com.example.autos.ui.home
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -28,6 +29,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.autos.R
 import com.example.autos.domain.DomainCoche
+import com.example.autos.ui.composables.Notice
+import com.example.autos.util.Limits
 import com.example.autos.util.flipDate
 import com.example.autos.util.localNumberFormat
 
@@ -39,7 +42,8 @@ fun Modelo(
 ) {
     Text(
         text = modelo,
-        modifier.background(MaterialTheme.colorScheme.secondary)
+        modifier
+            .background(MaterialTheme.colorScheme.secondary)
             .padding(start = 6.dp),
         color = MaterialTheme.colorScheme.onSecondary,
         fontSize = 34.sp,
@@ -57,7 +61,8 @@ fun Marca(
         text = marca,
         modifier.padding(start = 6.dp),
         fontSize = 22.sp,
-        fontStyle = FontStyle.Italic
+        fontStyle = FontStyle.Italic,
+        fontWeight = FontWeight.Bold
     )
 }
 
@@ -72,11 +77,13 @@ fun Matricula(
         Text(
             text = stringResource(R.string.matricula),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = matricula,
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -93,11 +100,13 @@ fun FechaMatricula(
         Text(
             text = stringResource(R.string.fecha_matriculacion),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = fecha,
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -114,11 +123,13 @@ fun BuyDate(
         Text(
             text = stringResource(R.string.fecha_compra),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = flipDate(fecha),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -135,11 +146,13 @@ fun InitKms(
         Text(
             text = stringResource(R.string.kms_iniciales),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = localNumberFormat(initKms),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -156,11 +169,13 @@ fun Kilometraje(
         Text(
             text = stringResource(R.string.kilometros),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = localNumberFormat(kms),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -177,11 +192,13 @@ fun KmsRecorridos(
         Text(
             text = stringResource(R.string.kms_recorridos),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             fontWeight = FontWeight.Bold
         )
         Text(
             text = localNumberFormat(kms),
             Modifier.fillMaxWidth(1f),
+            fontSize = 16.sp,
             textAlign = TextAlign.Center
         )
     }
@@ -189,65 +206,98 @@ fun KmsRecorridos(
 
 //@Preview
 @Composable
-private fun VehicleScreen(car: DomainCoche?) {
+private fun VehicleScreen(
+    car: State<DomainCoche?>,
+    actualOilData: State<Int?>,
+    actualAirData: State<Int?>,
+    actualFrontTireData: State<Int?>,
+    actualBackTireData: State<Int?>,
+) {
 
     Column(
-        Modifier.padding(vertical = 24.dp)
+        Modifier
+            .fillMaxHeight(0.8f),
+        verticalArrangement = Arrangement.SpaceAround
     ){
-        car.let {
+        Column {
             Modelo(
-                modelo = it?.modelo ?: "",
+                modelo = car.value?.modelo ?: "",
                 Modifier
-                    .fillMaxWidth(1f)
+                    .fillMaxWidth()
                     .padding(horizontal = 8.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Marca(
-                marca = it?.marca ?: "",
+                marca = car.value?.marca ?: "",
                 Modifier
-                    .fillMaxWidth(1f)
+                    .fillMaxWidth()
                     .size(28.dp)
                     .padding(horizontal = 8.dp)
             )
         }
 
         Row(
-            Modifier.padding(horizontal = 6.dp, vertical = 16.dp)
+            Modifier.padding(horizontal = 6.dp, vertical = 12.dp)
         ) {
             Column(
                 Modifier
                     .weight(1f)
                     .padding(8.dp, 0.dp)
             ) {
-                car.let {
-                    Matricula(
-                        matricula = it?.matricula ?: ""
-                    )
-                    BuyDate(
-                        fecha = it?.buyDate ?: "//"
-                    )
-                    Kilometraje(
-                        kms = it?.actualKms ?: 0
-                    )
-                }
+                Matricula(
+                    matricula = car.value?.matricula ?: ""
+                )
+                BuyDate(
+                    fecha = car.value?.buyDate ?: "//"
+                )
+                Kilometraje(
+                    kms = car.value?.actualKms ?: 0
+                )
             }
             Column(
                 Modifier
                     .weight(1f)
                     .padding(8.dp, 0.dp)
             ) {
-                car.let {
-                    FechaMatricula(
-                        fecha = it?.year ?: "//"
-                    )
-                    InitKms(
-                        initKms = it?.initKms ?: 0
-                    )
-                }
+                FechaMatricula(
+                    fecha = car.value?.year ?: "//"
+                )
+                InitKms(
+                    initKms = car.value?.initKms ?: 0
+                )
                 KmsRecorridos(
-                    kms = (car?.actualKms ?: 0) - (car?.initKms ?: 0)
+                    kms = (car.value?.actualKms ?: 0) - (car.value?.initKms ?: 0)
                 )
             }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Notice(
+                actualData = actualOilData,
+                headText = stringResource(id = R.string.oil),
+                limits = Limits.OIL,
+                icon = R.drawable.baseline_oil_barrel_24
+            )
+            Notice(
+                actualData = actualAirData,
+                headText = stringResource(id = R.string.filter),
+                limits = Limits.AIR,
+                icon = R.drawable.baseline_air_24
+            )
+            Notice(
+                actualData = actualFrontTireData,
+                headText = stringResource(id = R.string.front),
+                limits = Limits.TIRES,
+                icon = R.drawable.wheel
+            )
+            Notice(
+                actualData = actualBackTireData,
+                headText = stringResource(id = R.string.back),
+                limits = Limits.TIRES,
+                icon = R.drawable.wheel
+            )
         }
     }
 }
@@ -286,7 +336,11 @@ fun HomeFabs(navController: NavController) {
 
 @Composable
 fun HomeScreen(
-    auto: DomainCoche?,
+    auto: State<DomainCoche?>,
+    actualDataOil: State<Int?>,
+    actualAirData: State<Int?>,
+    actualFrontTireData: State<Int?>,
+    actualBackTireData: State<Int?>,
     navController: NavController
 ){
     Scaffold (
@@ -294,7 +348,13 @@ fun HomeScreen(
         floatingActionButtonPosition = FabPosition.End,
         content = {
             it.calculateBottomPadding()
-            VehicleScreen(auto)
+            VehicleScreen(
+                auto,
+                actualDataOil,
+                actualAirData,
+                actualFrontTireData,
+                actualBackTireData
+            )
         }
     )
 }

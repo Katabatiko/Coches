@@ -1,6 +1,5 @@
 package com.example.autos.ui.maintenance
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -68,7 +67,6 @@ fun MantenimientosScreen(
     val buscar = rememberSaveable { mutableStateOf("") }
     val lastSearch = rememberSaveable { mutableStateOf("") }
 
-//    Log.d(TAG, "status: ${status.value}")
     if (status.value == AutosStatus.LOADING){
         CircularProgressIndicator(
             modifier = Modifier
@@ -120,7 +118,10 @@ fun MantenimientosScreen(
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (list.value!!.isNotEmpty() && buscar.value.isNotBlank() && buscar.value.trim() == lastSearch.value){
+                    if (list.value!!.isNotEmpty() &&
+                        buscar.value.isNotBlank() &&
+                        buscar.value.trim() == lastSearch.value
+                    ){
                         item {
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -276,7 +277,8 @@ fun SearchBar(
                 keyboardController?.hide()
                 onSearch()
             }
-        )
+        ),
+        singleLine = true
     )
 }
 @Preview

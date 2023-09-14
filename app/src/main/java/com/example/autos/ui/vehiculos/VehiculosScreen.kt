@@ -56,14 +56,16 @@ fun AutoItem(
             Dato(
                 label = stringResource(id = R.string.matricula),
                 value = auto.matricula,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(0.6f),
                 labelModifier = Modifier.padding(end = 6.dp)
             )
             Dato(
                 value = localNumberFormat(auto.actualKms),
-                label = stringResource(id = R.string.kilometros),
-                modifier = Modifier.weight(1f),
-                labelModifier = Modifier.padding(end = 6.dp)
+                label = stringResource(id = R.string.kms),
+                modifier = Modifier.weight(0.4f),
+                valueAtEnd = true,
+                labelModifier = Modifier.padding(end = 6.dp),
+                valueModifier = Modifier.fillMaxWidth()
             )
         }
     }

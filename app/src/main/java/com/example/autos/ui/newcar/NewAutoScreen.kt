@@ -3,6 +3,7 @@ package com.example.autos.ui.newcar
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -13,9 +14,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -30,7 +34,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
+import com.example.autos.AutosStatus
 import com.example.autos.NumberType
 import com.example.autos.R
 import com.example.autos.ui.composables.DateInput
@@ -40,6 +44,7 @@ import com.example.autos.util.textEmpty
 import com.example.autos.util.validacion
 import kotlinx.coroutines.launch
 
+private const val TAG = "xxNas"
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -88,7 +93,8 @@ private fun InitKmsInput(
 @Composable
 fun NewAutoScreen(
     viewModel: NewCarViewModel,
-    navController: NavController
+    status: MutableState<AutosStatus>,
+    onNewAuto: () -> Unit
 ) {
     val state = rememberScrollState()
 
@@ -99,86 +105,93 @@ fun NewAutoScreen(
     val buyDateInput = viewModel.fechaCompra
     val initKmsInput = viewModel.initKms
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(top = 24.dp, start = 48.dp, end = 48.dp)
-            .verticalScroll(state)
+    if (status.value == AutosStatus.LOADING) {
+        CircularProgressIndicator(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(64.dp),
+            color = MaterialTheme.colorScheme.tertiary,
+            trackColor = MaterialTheme.colorScheme.onTertiary,
+            strokeWidth = 16.dp
+        )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 24.dp, start = 48.dp, end = 48.dp)
+                .verticalScroll(state)
 //            .imePadding()
-    ) {
-        val focusManager = LocalFocusManager.current
-
-        StringInput(
-            label = stringResource(id = R.string.modelo),
-            focusManager = focusManager,
-            focusRequest = true,
-            stringInput = modeloInput.value,
-            onDataChange = { viewModel.modelo.value = it }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        StringInput(
-            label = stringResource(id = R.string.marca),
-            focusManager = focusManager,
-            stringInput = marcaInput.value,
-            onDataChange = { viewModel.marca.value = it }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        StringInput(
-            label = stringResource(id = R.string.matricula),
-            focusManager = focusManager,
-            stringInput = matriculaInput.value,
-            onDataChange = { viewModel.matricula.value = it }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        DateInput(
-            label = stringResource(id = R.string.fecha_matriculacion),
-            modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            focusManager = focusManager,
-            dateInput = matriculacionInput.value,
-            onDataChange = { viewModel.fechaMatriculacion.value = it }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        DateInput(
-            label = stringResource(id = R.string.fecha_compra),
-            modifier = Modifier.fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            focusManager = focusManager,
-            dateInput = buyDateInput.value,
-            onDataChange = { viewModel.fechaCompra.value = it }
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-        InitKmsInput(
-            focusManager,
-            initKmsInput.value,
-            onDataChange = { viewModel.initKms.value = it }
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = {
-                viewModel.saveAuto()
-                navController.navigate("home") {
-                    // si cambia el coche se elimina el stack
-                    popUpTo("home")
-                }
-                      },
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            enabled = validacion(
-                listOf(
-                    modeloInput.value,
-                    marcaInput.value,
-                    matriculacionInput.value,
-                    matriculaInput.value,
-                    buyDateInput.value
-                )
-            ) && numeroValido(initKmsInput.value, NumberType.INT)
         ) {
-            Text(stringResource(id = R.string.save))
+            val focusManager = LocalFocusManager.current
+
+            StringInput(
+                label = stringResource(id = R.string.modelo),
+                focusManager = focusManager,
+                focusRequest = true,
+                stringInput = modeloInput.value,
+                onDataChange = { viewModel.modelo.value = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            StringInput(
+                label = stringResource(id = R.string.marca),
+                focusManager = focusManager,
+                stringInput = marcaInput.value,
+                onDataChange = { viewModel.marca.value = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            StringInput(
+                label = stringResource(id = R.string.matricula),
+                focusManager = focusManager,
+                stringInput = matriculaInput.value,
+                onDataChange = { viewModel.matricula.value = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            DateInput(
+                label = stringResource(id = R.string.fecha_matriculacion),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                focusManager = focusManager,
+                dateInput = matriculacionInput.value,
+                onDataChange = { viewModel.fechaMatriculacion.value = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            DateInput(
+                label = stringResource(id = R.string.fecha_compra),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                focusManager = focusManager,
+                dateInput = buyDateInput.value,
+                onDataChange = { viewModel.fechaCompra.value = it }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            InitKmsInput(
+                focusManager,
+                initKmsInput.value,
+                onDataChange = { viewModel.initKms.value = it }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = onNewAuto,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                enabled = validacion(
+                    listOf(
+                        modeloInput.value,
+                        marcaInput.value,
+                        matriculacionInput.value,
+                        matriculaInput.value,
+                        buyDateInput.value
+                    )
+                ) && numeroValido(initKmsInput.value, NumberType.INT)
+            ) {
+                Text(stringResource(id = R.string.save))
+            }
         }
     }
 }

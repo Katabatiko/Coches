@@ -4,7 +4,6 @@ import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,7 +14,7 @@ import com.example.autos.AutosStatus
 import com.example.autos.IVA
 import com.example.autos.autoId
 import com.example.autos.data.local.AutosDatabase
-import com.example.autos.data.local.asGastoListDomainModel
+import com.example.autos.data.local.asGastoDomainModel
 import com.example.autos.data.local.asItemsListDomainModel
 import com.example.autos.domain.DomainGasto
 import com.example.autos.domain.DomainItem
@@ -25,6 +24,8 @@ import com.example.autos.util.flipDate
 import com.example.autos.util.redondeaDecimales
 import com.example.autos.util.standardizeDate
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -45,7 +46,7 @@ class GastosViewModel(
 
     val cantidad = MutableLiveData("1")
     val descripcion = MutableLiveData("")
-    val marca = MutableLiveData("")
+    val detalle = MutableLiveData("")
     val precio = MutableLiveData("")
     val newItemList = MutableLiveData<List<DomainItem>>(listOf())
     val masIva = MutableLiveData(false)
@@ -55,24 +56,30 @@ class GastosViewModel(
         descripcion = "iva $IVA%",
         cantidad = 1,
         precio = 0f,
-        marca = ""
+        detalle = ""
     )
 
     private val gastosList = MutableLiveData<List<DomainGasto>>(listOf())
     val search = MutableLiveData<List<DomainGasto>>(listOf())
-    val lastKms: LiveData<Int> = repository.getActualKms(autoId)
+    val lastKms: MutableState<Int> = mutableStateOf(0)
 
     init {
-//        Log.d(TAG,"inicializando")
+        gastoDate.value = standardizeDate(getTodayDate())
+        viewModelScope.launch {
+            lastKms.value  = repository.getActualKms(autoId)
+        }
+    }
+
+    private fun getTodayDate(): String {
         val calendar = Calendar.getInstance()
         val year = calendar.get(Calendar.YEAR)
         val month = calendar.get(Calendar.MONTH) +1
         val day = calendar.get(Calendar.DAY_OF_MONTH)
-        gastoDate.value = standardizeDate("$day/$month/$year")
+        return "$day/$month/$year"
     }
 
-    private fun cleanGastoInputs() {
-        gastoDate.value = ""
+    fun cleanGastoInputs() {
+        gastoDate.value = standardizeDate(getTodayDate())
         concepto.value = ""
         actualKms.value = ""
         gastoId = 0
@@ -82,8 +89,9 @@ class GastosViewModel(
     fun cleanItemInput() {
         cantidad.value = "1"
         descripcion.value = ""
-        marca.value = ""
+        detalle.value = ""
         precio.value = ""
+        totalGasto.value = 0f
     }
 
     fun addItem(){
@@ -91,7 +99,7 @@ class GastosViewModel(
             itemId = 0,
             gastoId = gastoId,
             descripcion = descripcion.value!!,
-            marca = marca.value,
+            detalle = detalle.value,
             precio = precio.value!!.replace(",",".").toFloat(),
             cantidad = cantidad.value!!.toInt()
         )
@@ -100,9 +108,6 @@ class GastosViewModel(
 
     fun removeItem(item: DomainItem) {
         newItemList.value = newItemList.value!!.minus(item)
-        if (item == iva){
-            Log.d(TAG,"eliminando iva")
-        }
     }
 
     fun subtotal(): Float{
@@ -115,8 +120,7 @@ class GastosViewModel(
 
     fun addIva() {
         iva.precio = redondeaDecimales(subtotal() * IVA /100, 2)
-//        if (!newItemList.value!!.contains(iva))
-            newItemList.value = newItemList.value!!.plus(iva)
+        newItemList.value = newItemList.value!!.plus(iva)
     }
 
     fun removeIva() {
@@ -124,7 +128,7 @@ class GastosViewModel(
             newItemList.value = newItemList.value!!.minus(iva)
     }
 
-    fun makeGasto(): DomainGasto {
+    fun makeGasto() {
         gasto = DomainGasto(
             fecha = flipDate(gastoDate.value!!),
             concepto = concepto.value!!,
@@ -133,37 +137,30 @@ class GastosViewModel(
             importe = subtotal(),
             items = newItemList.value!!
         )
-        return gasto as DomainGasto
     }
 
-    fun saveGasto(): String {
-        var result = "inicial"
-        var error = false
+    fun saveGastoAsync(): Deferred<Boolean> {
         status.value = AutosStatus.LOADING
-        viewModelScope.launch {
+
+        val deferredInsert = viewModelScope.async {
             try {
                 insertGasto()
             } catch (e: Exception){
-                error = true
                 status.value = AutosStatus.ERROR
                 Log.e(TAG,"error de insercion: $e")
-                result = "Error de inserción, pruebe de nuevo \n$e"
+                return@async false
             }
 
-            cleanGastoInputs()
             status.value = AutosStatus.DONE
+            return@async true
         }
-        if (!error) {
-//            status.value = AutosStatus.DONE
-            result = "Gasto guardado"
-        }
-        return result
+        return deferredInsert
     }
 
-    suspend fun insertGasto() {
-        val gastoId = repository.insertGasto(gasto!!.asDatabaseModel()).toInt()
+    private suspend fun insertGasto() {
+        val gastoId = repository.insertGasto(gasto!!.asDatabaseModel(), gasto!!.kms > lastKms.value)
         gasto!!.items.forEach{ item ->
-            item.gastoId = gastoId
+            item.gastoId = gastoId.toInt()
             repository.insertItem(item.asDatabaseModel())
         }
     }
@@ -173,7 +170,6 @@ class GastosViewModel(
         viewModelScope.launch {
             try {
                 gastosList.value = getWholeGastosByAuto(autoId) ?: listOf()
-                Log.d(TAG,"recibidos gastos")
             } catch (ce: CancellationException){
                 throw ce
             } catch (e: Exception){
@@ -182,15 +178,14 @@ class GastosViewModel(
             }
             status.value = AutosStatus.DONE
         }
-//            Log.d(TAG,"gettingGastosByAuto: ${status.value}")
     }
 
-    suspend fun getWholeGastosByAuto(autoId: Int): List<DomainGasto> {
+    private suspend fun getWholeGastosByAuto(autoId: Int): List<DomainGasto> {
         var listDomainGasto: List<DomainGasto> = listOf()
         val gastosDb = repository.getGastosByAuto(autoId)
 
         gastosDb?.forEach { dbGasto ->
-            val gastoDomain = dbGasto.asGastoListDomainModel()
+            val gastoDomain = dbGasto.asGastoDomainModel()
             gastoDomain.items = repository.getItemsFromGasto(dbGasto.gastoId).asItemsListDomainModel()
             listDomainGasto = listDomainGasto.plus(gastoDomain)
         }
@@ -200,57 +195,30 @@ class GastosViewModel(
 
     fun getSearch(wanted: String){
         search.value = gastosList.value!!.filter {
-                it.conceptoContains(wanted) || it.itemsContains(wanted)
+                it.contains(wanted.split(" "))
             }
-//        Log.d(TAG,"encontrados: ${search.value?.size ?: -1} -> ${search.value} ")
     }
 
-    private fun DomainGasto.conceptoContains(wanted: String): Boolean {
-        val words = wanted.split(" ")
-        when(words.size) {
-            1 -> if (this.concepto.contains(wanted, true))
-                return true
-
-            2 -> {
-                if (this.concepto.contains(words[0], true)
-                        && this.concepto.contains(words[1], true))
-                    return true
-            }
-
-            else -> {
-                if (this.concepto.contains(words[0], true)
-                        && this.concepto.contains(words[1], true)
-                        && this.concepto.contains(words[2], true))
-                    return true
-            }
-
+    /**
+     * Extension function para comprobar si un gasto o sus articulos
+     * contienen todas la palabras de busqueda suministradas
+     * @param wanted lista de palabras a comprobar
+     */
+    private fun DomainGasto.contains(wanted: List<String>): Boolean {
+        var matches = true
+        wanted.forEach {
+            matches = matches && this.concepto.contains(it, true)
         }
-        return false
-    }
-
-    private fun DomainGasto.itemsContains(wanted: String): Boolean {
-        val words = wanted.split(" ")
-        when(words.size) {
-            1 -> this.items.forEach {
-                    if (it.descripcion.contains(wanted, true)) return true
+        if (matches)    return true
+        else {
+            this.items.forEach{ item ->
+                matches = true
+                wanted.forEach {
+                    matches = matches && item.descripcion.contains(it, true)
                 }
-
-            2 -> this.items.forEach {
-                if (
-                    it.descripcion.contains(words[0], true)
-                    && it.descripcion.contains(words[1])
-                    ) return true
-            }
-
-            else -> this.items.forEach {
-                if (
-                    it.descripcion.contains(words[0], true)
-                    && it.descripcion.contains(words[1])
-                    && it.descripcion.contains(words[2])
-                ) return true
+                if (matches)    return true
             }
         }
-
         return false
     }
 
