@@ -13,7 +13,7 @@ import com.example.autos.data.local.DbItem
 import com.example.autos.data.local.DbRefueling
 import com.example.autos.data.local.asRefuelingDomainModel
 import com.example.autos.domain.DomainRefueling
-import com.example.autos.domain.KmsByYear
+import com.example.autos.domain.DatoByYear
 
 private const val TAG = "xxArepo"
 
@@ -106,6 +106,26 @@ class AutosRepository(private val database: AutosDatabase, val application: Appl
         return database.autosDao.getTotalCost(carId)
     }
 
+    suspend fun getGastoByYear(carId: Int, yearsRange: DateRange?): List<DatoByYear> {
+        var gastoByYear: List<DatoByYear> = listOf()
+        if (yearsRange != null) {
+            val latest = yearsRange.latest?.toInt()
+            val oldest = yearsRange.oldest?.toInt()
+
+            if (latest != null && oldest != null) {
+                for (year in latest downTo oldest) {
+                    val gasto = database.autosDao.getGastosByYear(carId, "$year%")
+                    // por si hay años sin registros
+                    if (gasto != null) {
+                        val anno = DatoByYear(year = year.toString(), dato = gasto.toInt())
+                        gastoByYear = gastoByYear.plus(anno)
+                    }
+                }
+            }
+        }
+        return gastoByYear
+    }
+
     fun getTotalMaxPrice(carId: Int): LiveData<CompoundPrice> {
         return database.autosDao.getTotalMaxPrice(carId)
     }
@@ -133,19 +153,18 @@ class AutosRepository(private val database: AutosDatabase, val application: Appl
                     database.autosDao.getCambiosRueda(autoId, application.getString(R.string.search_tire_back))
     }
 
-    suspend fun getKmsByYear(carId: Int): List<KmsByYear> {
-        var kmsByYear = listOf<KmsByYear>()
-        val rangeDate = database.autosDao.getDateRange(carId)
-        if (rangeDate != null) {
-            val oldest = rangeDate.oldest?.split("/")?.get(0)?.toInt()
-            val latest = rangeDate.latest?.split("/")?.get(0)?.toInt()
+    suspend fun getKmsByYear(carId: Int, yearsRange: DateRange?): List<DatoByYear> {
+        var kmsByYear = listOf<DatoByYear>()
+        if (yearsRange != null) {
+            val oldest = yearsRange.oldest?.toInt()
+            val latest = yearsRange.latest?.toInt()
 
             if (latest != null && oldest != null) {
                 for (year in latest downTo oldest) {
                     val kms = database.autosDao.getKmsByYear(carId, "$year%")
                     // por si hay años sin registros
                     if (kms != null) {
-                        val anno = KmsByYear(year = year.toString(), kms = kms)
+                        val anno = DatoByYear(year = year.toString(), dato = kms)
                         kmsByYear = kmsByYear.plus(anno)
                     }
                 }

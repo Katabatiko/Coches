@@ -55,8 +55,8 @@ data class AverageRefueling(
     val consumo: Float
 )
 
-data class KmsByYear(
-    val kms: Int,
+data class DatoByYear(
+    val dato: Int,
     val year: String
 )
 

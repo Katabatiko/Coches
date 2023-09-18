@@ -1,7 +1,6 @@
 package com.example.autos.ui.estadisticas
 
 import android.app.Application
-import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
@@ -15,12 +14,13 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.example.autos.autoId
 import com.example.autos.data.local.AutosDatabase
 import com.example.autos.data.local.CompoundPrice
+import com.example.autos.data.local.DateRange
 import com.example.autos.data.local.asGastoListDomainModel
 import com.example.autos.data.local.asRefuelingDomainModel
 import com.example.autos.domain.AverageRefueling
 import com.example.autos.domain.DomainGasto
 import com.example.autos.domain.DomainRefueling
-import com.example.autos.domain.KmsByYear
+import com.example.autos.domain.DatoByYear
 import com.example.autos.domain.PricesByYear
 import com.example.autos.repository.AutosRepository
 import com.example.autos.util.redondeaDecimales
@@ -32,6 +32,8 @@ class StatisticsViewModel(
     val app: Application,
     private val repository: AutosRepository
     ) : AndroidViewModel(app) {
+
+    private var yearsRange: DateRange? = null
 
     var totalKmsRecorridos: MutableState<Int> = mutableStateOf(0)
     var lastLitros: MutableState<Float> = mutableStateOf(0f)
@@ -55,12 +57,15 @@ class StatisticsViewModel(
     val frontTiresChanges: MutableState<List<DomainGasto>> = mutableStateOf(listOf())
     val backTiresChanges: MutableState<List<DomainGasto>> = mutableStateOf(listOf())
 
-    val kmsByYear: MutableState<List<KmsByYear>> = mutableStateOf(listOf())
+    val kmsByYear: MutableState<List<DatoByYear>> = mutableStateOf(listOf())
 
     val pricesByYear: MutableState<List<PricesByYear>> = mutableStateOf(listOf())
 
+    val gastosByYear: MutableState<List<DatoByYear>> = mutableStateOf(listOf())
+
     init {
         viewModelScope.launch {
+            getDateRange()
             _petrolTotal.value = repository.getTotalPetrol(autoId)
             _costeTotalPetrol.value = repository.getTotalCost(autoId)
             totalGastos.value  = repository.getTotalGastos(autoId)
@@ -68,11 +73,24 @@ class StatisticsViewModel(
             getKmsByYear()
             getLastAverages()
             getPricesByYear()
+            getGastosByYear()
             getCambiosRuedas()
         }
 
     }
 
+    /**
+     * Función para la extracción de los años durante los cuales el auto
+     * ha tenido registros. Se registran en un objeto DateRange, pero sólo
+     * recoge el año (se ignora el mes y el día de mes) en formato String
+     */
+    private suspend fun getDateRange() {
+        val dateRange = repository.getDateRange(autoId)
+        val oldest = dateRange?.oldest?.split("/")?.get(0) ?: "0"
+        val latest = dateRange?.latest?.split("/")?.get(0) ?: "0"
+        yearsRange = DateRange(latest, oldest)
+//        Log.d(TAG,"dateRange: $dateRange")
+    }
 
     val totalAverage = petrolTotal.map { petrol ->
         if ( totalKmsRecorridos.value != 0 ){
@@ -93,7 +111,6 @@ class StatisticsViewModel(
 //        Log.d(TAG,"fullRefuels count: $count")
 
         fullRefuels.value.forEachIndexed { index, actual ->
-            Log.d(TAG,"refuels index: $index")
             // al estar ordenados por kms descendientes, se itera de mas a menos reciente
             val averageRefueling: AverageRefueling?
             if (index < (count -1)) {
@@ -141,45 +158,42 @@ class StatisticsViewModel(
         }
     }
 
-    private fun getKmsByYear() {
-        viewModelScope.launch {
-            kmsByYear.value = repository.getKmsByYear(autoId)
-//            Log.d(TAG,"kmsByYear: ${kmsByYear.value}")
-        }
+    private suspend fun getKmsByYear() {
+        kmsByYear.value = repository.getKmsByYear(autoId, yearsRange)
     }
 
-    private fun getPricesByYear() {
-        viewModelScope.launch {
-            var priceList: List<PricesByYear> = listOf()
-            val dateRange = repository.getDateRange(autoId)
-            val oldest = dateRange?.oldest?.split("/")?.get(0)?.toInt()
-            val latest = dateRange?.latest?.split("/")?.get(0)?.toInt()
-            if (latest != null && oldest != null) {
-                for (year in latest downTo oldest){
-                    val compoundMin = repository.getMinPriceByYear(autoId, "${year}%")
-                    val compoundMax = repository.getlMaxPriceByYear(autoId, "${year}%")
-                    // por si hay años intermedios sin registros
-                    if (compoundMax.fecha != null && compoundMin.fecha != null) {
-                        priceList = priceList.plus(
-                            PricesByYear(
-                                year = year.toString(),
-                                min = compoundMin,
-                                max = compoundMax
-                            )
+    private suspend fun getPricesByYear() {
+        var priceList: List<PricesByYear> = listOf()
+        val oldest = yearsRange?.oldest?.toInt()
+        val latest = yearsRange?.latest?.toInt()
+
+        if (latest != null && oldest != null) {
+            for (year in latest downTo oldest){
+                val compoundMin = repository.getMinPriceByYear(autoId, "${year}%")
+                val compoundMax = repository.getlMaxPriceByYear(autoId, "${year}%")
+                // por si hay años intermedios sin registros
+                if (compoundMax.fecha != null && compoundMin.fecha != null) {
+                    priceList = priceList.plus(
+                        PricesByYear(
+                            year = year.toString(),
+                            min = compoundMin,
+                            max = compoundMax
                         )
-                    }
+                    )
                 }
             }
-//            Log.d(TAG,"pricesList: $priceList")
-            pricesByYear.value = priceList
         }
+//            Log.d(TAG,"pricesList: $priceList")
+        pricesByYear.value = priceList
     }
 
-    private fun getCambiosRuedas() {
-        viewModelScope.launch {
-            frontTiresChanges.value = repository.getCambiosRueda(autoId, true).asGastoListDomainModel()
-            backTiresChanges.value = repository.getCambiosRueda(autoId, false).asGastoListDomainModel()
-        }
+    private suspend fun getGastosByYear() {
+        gastosByYear.value = repository.getGastoByYear(autoId, yearsRange)
+    }
+
+    private suspend fun getCambiosRuedas() {
+        frontTiresChanges.value = repository.getCambiosRueda(autoId, true).asGastoListDomainModel()
+        backTiresChanges.value = repository.getCambiosRueda(autoId, false).asGastoListDomainModel()
     }
 
     companion object {

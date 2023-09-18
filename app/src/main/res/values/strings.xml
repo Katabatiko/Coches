@@ -38,7 +38,7 @@
     <string name="date_adjust">Ajustar fecha</string>
     <string name="kilometros">Kilómetros:</string>
     <string name="kms">"Kms: "</string>
-    <string name="kms_">"  kms."</string>
+    <string name="kms_">" kms."</string>
     <string name="total_kms">Total kms:</string>
     <string name="litros">"Litros: "</string>
     <string name="l">" l."</string>
@@ -94,7 +94,9 @@
     <string name="total_mantenimiento">"Mantenimiento: "</string>
     <string name="precios">Precios</string>
     <string name="precio_max">Precio máximo:</string>
+    <string name="max">max. </string>
     <string name="precio_min">Precio mínimo:</string>
+    <string name="min">min. </string>
     <string name="totales">Totales</string>
     <string name="parciales">Parciales</string>
     <string name="init">Del:</string>

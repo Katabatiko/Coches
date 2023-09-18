@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -45,8 +46,8 @@ import androidx.compose.ui.unit.sp
 import com.example.autos.R
 import com.example.autos.data.local.CompoundPrice
 import com.example.autos.domain.AverageRefueling
+import com.example.autos.domain.DatoByYear
 import com.example.autos.domain.DomainGasto
-import com.example.autos.domain.KmsByYear
 import com.example.autos.domain.PricesByYear
 import com.example.autos.ui.composables.Dato
 import com.example.autos.util.flipAndSortDate
@@ -84,6 +85,7 @@ fun StatisticsScreen (
     val kmsByYear = viewModel.kmsByYear
     val listAverages = viewModel.listAverage
     val pricesByYear = viewModel.pricesByYear
+    val gastoByYear = viewModel.gastosByYear
     val frontTiresChanges = viewModel.frontTiresChanges
     val backTiresChanges = viewModel.backTiresChanges
 
@@ -130,7 +132,8 @@ fun StatisticsScreen (
                 text = stringResource(id = R.string.totales),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                textDecoration = TextDecoration.Underline
+                textDecoration = TextDecoration.Underline,
+                style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
             )
             Dato(
                 value = "${localNumberFormat(totalTraveledKms)} ${stringResource(id = R.string.kms_)}",
@@ -225,10 +228,10 @@ fun StatisticsScreen (
 
             Text(
                 text = stringResource(id = R.string.parciales),
-//                modifier = Modifier.padding(8.dp),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
-                textDecoration = TextDecoration.Underline
+                textDecoration = TextDecoration.Underline,
+                style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -242,7 +245,8 @@ fun StatisticsScreen (
                     text = stringResource(id = R.string.kilometros).replace(":", ""),
                     modifier = Modifier.padding(start = 8.dp),
                     fontSize = 16.sp,
-                    fontStyle = FontStyle.Italic
+                    fontStyle = FontStyle.Italic,
+                    style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
                 )
                 IconButton(
                     onClick = { expandedKms.value = !expandedKms.value },
@@ -279,9 +283,17 @@ fun StatisticsScreen (
 
                     for (row in 1..filas) {
                         if (row < 4) {
-                            count = makeKmsByYearRow(count, itemsCount, kmsByYear)
+                            count = makeDatoByYearRow(
+                                count,
+                                itemsCount,
+                                kmsByYear
+                            )
                         } else if (expandedKms.value){
-                            count = makeKmsByYearRow(count, itemsCount, kmsByYear)
+                            count = makeDatoByYearRow(
+                                count,
+                                itemsCount,
+                                kmsByYear
+                            )
                         }
                     }
                 }
@@ -299,7 +311,8 @@ fun StatisticsScreen (
                     text = stringResource(id = R.string.petrol),
                     modifier = Modifier.padding(start = 8.dp),
                     fontSize = 16.sp,
-                    fontStyle = FontStyle.Italic
+                    fontStyle = FontStyle.Italic,
+                    style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
                 )
                 IconButton(
                     onClick = { expandedConsumo.value = !expandedConsumo.value },
@@ -353,7 +366,8 @@ fun StatisticsScreen (
                     text = stringResource(id = R.string.precios),
                     modifier = Modifier.padding(horizontal = 8.dp),
                     fontSize = 16.sp,
-                    fontStyle = FontStyle.Italic
+                    fontStyle = FontStyle.Italic,
+                    style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
                 )
                 IconButton(
                     onClick = { expandedPrecios.value = !expandedPrecios.value },
@@ -397,6 +411,63 @@ fun StatisticsScreen (
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val expandedGastos = rememberSaveable { mutableStateOf(false) }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { expandedGastos.value = !expandedGastos.value }
+            ) {
+                Text(
+                    text = stringResource(id = R.string.gastos),
+                    modifier = Modifier.padding(start = 8.dp),
+                    fontSize = 16.sp,
+                    fontStyle = FontStyle.Italic,
+                    style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
+                )
+                IconButton(
+                    onClick = { expandedGastos.value = !expandedGastos.value },
+                    modifier = Modifier
+                        .height(24.dp)
+                ) {
+                    if (!expandedGastos.value) {
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = stringResource(id = R.string.mas)
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.KeyboardArrowUp,
+                            contentDescription = stringResource(id = R.string.menos)
+                        )
+                    }
+                }
+            }
+            Column(Modifier.fillMaxWidth()) {
+                if (gastoByYear.value.isEmpty()){
+                    Text(
+                        text = stringResource(id = R.string.no_registers),
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        fontSize = 16.sp
+                    )
+                } else {
+                    val itemsCount = gastoByYear.value.size
+                    val filas = ceil((itemsCount / columnNumber.toFloat()).toDouble()).toInt()
+                    var count = 0
+
+                    for (row in 1..filas) {
+                        if (row < 4) {
+                            count = makeDatoByYearRow(count, itemsCount, gastoByYear, "€")
+                        } else if (expandedGastos.value){
+                            count = makeDatoByYearRow(count, itemsCount, gastoByYear, "€")
+                        }
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
             Column(Modifier.fillMaxWidth()) {
@@ -404,7 +475,8 @@ fun StatisticsScreen (
                     text = stringResource(id = R.string.front_tires),
                     modifier = Modifier.padding(start = 8.dp),
                     fontSize = 16.sp,
-                    fontStyle = FontStyle.Italic
+                    fontStyle = FontStyle.Italic,
+                    style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
                 )
 
                 val count = frontTiresChanges.value.size
@@ -430,7 +502,8 @@ fun StatisticsScreen (
                     text = stringResource(id = R.string.back_tires),
                     modifier = Modifier.padding(start = 8.dp),
                     fontSize = 16.sp,
-                    fontStyle = FontStyle.Italic
+                    fontStyle = FontStyle.Italic,
+                    style = TextStyle(background = MaterialTheme.colorScheme.surfaceVariant)
                 )
 
                 val count = backTiresChanges.value.size
@@ -463,10 +536,11 @@ fun StatisticsScreen (
 }
 
 @Composable
-private fun makeKmsByYearRow(
+private fun makeDatoByYearRow(
     count: Int,
     itemsCount: Int,
-    kmsByYear: MutableState<List<KmsByYear>>,
+    datoByYear: MutableState<List<DatoByYear>>,
+    sufix: String = ""
 ): Int {
     var counter = count
     Row(
@@ -475,9 +549,9 @@ private fun makeKmsByYearRow(
     ) {
         if ((counter + columnNumber) < itemsCount) {
             for (i in 1..columnNumber) {
-                val year = kmsByYear.value[counter++]
+                val year = datoByYear.value[counter++]
                 Dato(
-                    value = localNumberFormat(year.kms),
+                    value = "${localNumberFormat(year.dato)} $sufix",
                     label = "${year.year} -> ",
                     valueAtEnd = true,
                     valueModifier = Modifier.width(55.dp)
@@ -485,9 +559,9 @@ private fun makeKmsByYearRow(
             }
         } else {
             for (i in counter until itemsCount) {
-                val year = kmsByYear.value[counter++]
+                val year = datoByYear.value[counter++]
                 Dato(
-                    value = localNumberFormat(year.kms),
+                    value = "${localNumberFormat(year.dato)} $sufix",
                     label = "${year.year} -> ",
                     valueAtEnd = true,
                     valueModifier = Modifier.width(55.dp)
@@ -510,21 +584,25 @@ fun AnualMinAndMaxPrice(prices: PricesByYear) {
     ) {
         Text(
             text = "${prices.year}: ",
-            modifier = Modifier.weight(0.2f),
+            modifier = Modifier.weight(0.15f),
             fontWeight = FontWeight.Bold
         )
         Column(
             Modifier
                 .fillMaxWidth()
-                .weight(0.8f)
+                .weight(0.85f)
         ) {
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
+                    text = stringResource(id = R.string.min),
+                    modifier = Modifier.weight(0.15f)
+                )
+                Text(
                     text = "${localFloatFormat(prices.min.price)}${stringResource(id = R.string.Eu)}",
-                    modifier = Modifier.weight(0.3f),
+                    modifier = Modifier.weight(0.25f),
                 )
                 Text(
                     text = stringResource(id = R.string.dia_mes_template).format(minDate!![2]),
@@ -532,7 +610,7 @@ fun AnualMinAndMaxPrice(prices: PricesByYear) {
                 )
                 Text(
                     text = meses[(minDate[1].toInt() -1)],
-                    modifier = Modifier.weight(0.4f),
+                    modifier = Modifier.weight(0.3f),
                 )
             }
             Row(
@@ -540,8 +618,12 @@ fun AnualMinAndMaxPrice(prices: PricesByYear) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
+                    text = stringResource(id = R.string.max),
+                    modifier = Modifier.weight(0.15f)
+                )
+                Text(
                     text = "${localFloatFormat(prices.max.price)}${stringResource(id = R.string.Eu)}",
-                    modifier = Modifier.weight(0.3f),
+                    modifier = Modifier.weight(0.25f),
                 )
                 Text(
                     text = stringResource(id = R.string.dia_mes_template).format(maxDate!![2]),
@@ -549,7 +631,7 @@ fun AnualMinAndMaxPrice(prices: PricesByYear) {
                 )
                 Text(
                     text = meses[(maxDate[1].toInt() -1)],
-                    modifier = Modifier.weight(0.4f),
+                    modifier = Modifier.weight(0.3f),
                 )
             }
         }

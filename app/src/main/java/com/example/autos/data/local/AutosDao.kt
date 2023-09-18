@@ -63,6 +63,9 @@ interface AutosDao {
     @Query("select sum(euros) from DbRefueling where cocheId= :carId")
     suspend fun getTotalCost(carId: Int): Float?
 
+    @Query("select sum(importe) from dbgasto where autoId= :carId and fecha like :year")
+    suspend fun getGastosByYear(carId: Int, year: String): Float?
+
     @Query("select sum(litros) from DbRefueling where cocheId= :carId")
     suspend fun getTotalPetrol(carId: Int): Float?
 
