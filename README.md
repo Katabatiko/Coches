@@ -12,7 +12,7 @@ Algunas características:
 
 *   Segumiento de consumo de combustible
 *   Registro de gastos de mantenimiento
-*   Estadísticas (en desarrollo)
+*   Estadísticas
 *   Varios vehículos
 
 
@@ -23,8 +23,9 @@ Tecnologias usadas en el proyecto:
 
 *   Kotlin
 *   MVVM
+*   Room
 *   Compose
 
 <h2>Atribuciones</h2>
 *   Icono de la Aplicación <a target="_blank" href="https://icons8.com/icon/BL5MToZaC11v/servicio-de-coche">Servicio de coche</a>
-*   <a target="_blank" href="https://icons8.com/icon/Hp6fuB9byo0Z/maintenance">Maintenance</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a>
+   y <a target="_blank" href="https://icons8.com/icon/Hp6fuB9byo0Z/maintenance">Maintenance</a> icon by <a target="_blank" href="https://icons8.com">Icons8</a>
